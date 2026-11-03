@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>title</key>
+	<string>Apple ID 建议</string>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>整行</string>
+			<key>footerText</key>
+			<string>打开后，「设置」首页上的「Apple ID 建议」这一行不再显示。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>隐藏「Apple ID 建议」整行</string>
+			<key>key</key>
+			<string>hideGroup</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>@PACKAGE_ID@</string>
+			<key>PostNotification</key>
+			<string>@PACKAGE_ID@/changed</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>id</key>
+			<string>ITEMS_GROUP</string>
+			<key>label</key>
+			<string>逐条隐藏</string>
+			<key>footerText</key>
+			<string>下面是当前「Apple ID 建议」里的每一条，打开开关就隐藏这一条；全部隐藏后整行也会消失。新出现的建议会在下次打开「设置」时自动加进来。</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSStaticTextCell</string>
+			<key>id</key>
+			<string>ITEMS_PLACEHOLDER</string>
+			<key>label</key>
+			<string>正在读取…</string>
+		</dict>
+	</array>
+</dict>
+</plist>

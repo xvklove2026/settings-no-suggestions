@@ -1,0 +1,9 @@
+Package: local.apelin.settingsnosuggestions
+Name: 设置首页去除 Apple ID 建议
+Version: 0.1.0
+Architecture: @ARCH@
+Author: Apelin
+Maintainer: Apelin
+Section: Tweaks
+Depends: mobilesubstrate, preferenceloader
+Description: 在「设置」首页隐藏 Apple ID 建议，每一条建议都可以单独开关。
