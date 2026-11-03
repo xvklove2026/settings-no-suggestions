@@ -45,6 +45,15 @@ apelin_project_build
 走 `apelin/build.sh`：clang 编译 dylib（`-dynamiclib`）和面板（`-bundle`），`ldid -S` 签名，
 把 `@PACKAGE_ID@` / `@VERSION@` 塞进 plist，最后 `dpkg-deb -b` 出包。不要在别处自己打 deb。
 
+- **架构**：两种引导都编 `arm64` + `arm64e`，用 `lipo` 合成通用二进制（A11 及更早的设备
+  与 arm64e 设备共用同一个 dylib）。包里的 `Architecture` 仍取 `$APELIN_ARCHITECTURE`
+  （roothide → `iphoneos-arm64e`，rootless → `iphoneos-arm64`）。
+- **包内路径**：从 `$APELIN_PREFIX` 起（rootless 是 `/var/jb`，roothide 为空）。
+- **头文件**：开发支持组件在引导自己的 root 里，脚本在 `/rootfs` 下先找出
+  `usr/share/apelin/development`，去掉 `/rootfs` 前缀交给 clang；编 rootless 包时也用这一份。
+- **交付**：`apelin_project_build` 分别带 `configuration: release` 和 `bootstrap: roothide` /
+  `rootless` 各编一次，两个包一起发布；改内容时升 `control` 里的 `Version`。
+
 `-DAPSN_DEBUG_DUMP=1` 打开时才会写 `/var/mobile/Library/APSNoSuggestions/{state.txt,specs.txt}`
 这类诊断文件；正式版不带这个宏，只有 `os_log`。
 

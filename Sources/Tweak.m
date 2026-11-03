@@ -20,17 +20,20 @@
 #import <objc/runtime.h>
 #import <substrate.h>
 
-// 「设置」的列表控制器（PSListController）改行、改角标用的两个接口；
+// 「设置」的列表控制器（PSListController）改行、改角标用的接口；
 // 本 tweak 不链接 Preferences，只在这里按消息声明。
 @interface NSObject (APSNPreferences)
 - (void)removeSpecifier:(id)specifier animated:(BOOL)animated;
 - (void)insertSpecifier:(id)specifier atIndex:(NSInteger)index animated:(BOOL)animated;
 - (void)reloadSpecifier:(id)specifier;
+// 表格里某一行的 indexPath 对应第几个 specifier（隐藏行高要用）
+- (NSUInteger)indexForIndexPath:(NSIndexPath *)indexPath;
 @end
 
 static NSString *const APSNHideGroupKey = @"hideGroup";
 static NSString *const APSNItemKeyPrefix = @"hide-";
 static NSString *const APSNFollowUpPrefix = @"FollowUpList_";
+static NSString *const APSNHiddenKey = @"apelinHidden";
 
 static os_log_t APSNLog(void) {
     static os_log_t log;
@@ -184,34 +187,6 @@ static NSString *APSNItemKind(id item) {
     return uid == nil ? nil : APSNStripUUIDs(uid);
 }
 
-// 首页那一行现在还该不该出现：总开关没关，并且至少有一条没被单独关掉。
-// 全部条目都被关掉时行就该消失，这时不必让「设置」重建列表。
-static BOOL APSNRowShouldShow(void) {
-    if (APSNPreferenceBool(APSNHideGroupKey)) {
-        return NO;
-    }
-    NSString *directory = APSNStateDirectory();
-    NSString *path = directory != nil
-        ? [directory stringByAppendingPathComponent:@"items.plist"] : nil;
-    NSArray *items = path != nil ? [NSArray arrayWithContentsOfFile:path] : nil;
-    if ([items count] == 0) {
-        return YES;  // 还没读到过条目，先留着这一行
-    }
-    for (NSDictionary *record in items) {
-        if (![record isKindOfClass:[NSDictionary class]]) {
-            continue;
-        }
-        NSString *kind = record[@"kind"];
-        if (![kind isKindOfClass:[NSString class]] || kind.length == 0) {
-            continue;
-        }
-        if (!APSNPreferenceBool([APSNItemKeyPrefix stringByAppendingString:kind])) {
-            return YES;
-        }
-    }
-    return NO;
-}
-
 // 把见过的每一条建议并进 items.plist（旧的保留，这样条目暂时消失时开关还在）
 static void APSNWriteItems(NSArray *items) {
     NSString *directory = APSNStateDirectory();
@@ -297,94 +272,80 @@ static void APSNSetIconBadge(NSUInteger count) {
     os_log(APSNLog(), "APSN icon badge -> %lu", (unsigned long)count);
 }
 
-// 之前整行被删掉时留着的那个 specifier：再需要它时插回原位。
-static id APSNRemovedSpec;
-static NSInteger APSNRemovedIndex = -1;
+// 「这一行」在列表里永远保留，只按开关决定画不画：整行隐藏时打上 apelinHidden
+// 标记，再由 tableView:heightForRowAtIndexPath: 把高度算成 0。
+// 不删行就不会改变列表的行数，下面的分组（越狱插件列表）也就不会跟着上下跳。
+static BOOL APSNItemHidden(id item) {
+    NSString *kind = APSNItemKind(item);
+    return kind != nil &&
+        APSNPreferenceBool([APSNItemKeyPrefix stringByAppendingString:kind]);
+}
 
-// 返回是否改动了列表
-static BOOL APSNFilterSpecifiers(NSMutableArray *specs) {
-    NSUInteger index = NSNotFound;
-    for (NSUInteger i = 0; i < [specs count]; i++) {
-        id identifier = APSNSpecifierValue(specs[i], @"identifier");
-        if ([identifier isKindOfClass:[NSString class]] &&
-            [identifier hasPrefix:APSNFollowUpPrefix]) {
-            index = i;
-            break;
-        }
-    }
-    if (index == NSNotFound) {
-        return NO;
-    }
-
-    id spec = specs[index];
-
+// 这一行现在是否整行不显示（只看开关，不动 specifier）
+static BOOL APSNFollowUpHiddenNow(id spec) {
     if (APSNPreferenceBool(APSNHideGroupKey)) {
-        [specs removeObjectAtIndex:index];
-        APSNRemovedSpec = spec;
-        APSNRemovedIndex = (NSInteger)index;
-        APSNSetIconBadge(0);
-        os_log(APSNLog(), "APSN removed follow-up row (group switch)");
-        APSNWriteState(@"removed follow-up row (group switch)");
         return YES;
     }
-
-    // 原始条目存一份，之后每次都从它算起，这样开关关掉时能把条目还原回来
     id items = APSNSpecifierValue(spec, @"apelinOriginalItems");
     if (![items isKindOfClass:[NSArray class]] || [items count] == 0) {
         items = APSNSpecifierValue(spec, @"followUpItems");
-        if (![items isKindOfClass:[NSArray class]] || [items count] == 0) {
-            APSNWriteState([NSString stringWithFormat:@"follow-up spec but items=%@ count=%lu",
-                                                      APSNClassName(items),
-                                                      (unsigned long)[items count]]);
+    }
+    if (![items isKindOfClass:[NSArray class]] || [items count] == 0) {
+        return NO;
+    }
+    for (id item in items) {
+        if (!APSNItemHidden(item)) {
             return NO;
         }
-        [spec setProperty:items forKey:@"apelinOriginalItems"];
+    }
+    return YES;
+}
+
+// 按开关把条目、角标、隐藏标记算一遍。返回 YES 表示这一行应当整行隐藏。
+static BOOL APSNApplyFollowUpVisibility(id spec) {
+    id items = APSNSpecifierValue(spec, @"apelinOriginalItems");
+    if (![items isKindOfClass:[NSArray class]] || [items count] == 0) {
+        items = APSNSpecifierValue(spec, @"followUpItems");
+        if ([items isKindOfClass:[NSArray class]] && [items count] > 0) {
+            [spec setProperty:items forKey:@"apelinOriginalItems"];
+        }
+    }
+    BOOL groupHidden = APSNPreferenceBool(APSNHideGroupKey);
+    if (![items isKindOfClass:[NSArray class]] || [items count] == 0) {
+        [spec setProperty:(groupHidden ? @YES : nil) forKey:APSNHiddenKey];
+        if (groupHidden) {
+            APSNSetIconBadge(0);
+        }
+        return groupHidden;
     }
     APSNWriteItems(items);
 
-    id previous = APSNSpecifierValue(spec, @"followUpItems");
-    NSUInteger previousCount = [previous isKindOfClass:[NSArray class]] ? [previous count] : 0;
-
     NSMutableArray *kept = [NSMutableArray array];
     for (id item in items) {
-        NSString *kind = APSNItemKind(item);
-        BOOL hidden = kind != nil &&
-            APSNPreferenceBool([APSNItemKeyPrefix stringByAppendingString:kind]);
-        if (!hidden) {
+        if (!APSNItemHidden(item)) {
             [kept addObject:item];
         }
     }
-    if ([kept count] == 0) {
-        [specs removeObjectAtIndex:index];
-        APSNRemovedSpec = spec;
-        APSNRemovedIndex = (NSInteger)index;
+    if (groupHidden || [kept count] == 0) {
+        [spec setProperty:@YES forKey:APSNHiddenKey];
+        [spec setProperty:@[] forKey:@"followUpItems"];
+        [spec setProperty:@0 forKey:@"badgeNumber"];
+        [spec setProperty:nil forKey:@"cellObject"];
         APSNSetIconBadge(0);
-        os_log(APSNLog(), "APSN removed follow-up row (all items hidden)");
-        APSNWriteState(@"removed follow-up row (all items hidden)");
+        APSNWriteState(groupHidden ? @"row hidden (group switch)" : @"row hidden (all items hidden)");
         return YES;
     }
-    [spec setProperty:kept forKey:@"followUpItems"];
+    [spec setProperty:nil forKey:APSNHiddenKey];
+    id previous = APSNSpecifierValue(spec, @"followUpItems");
+    NSArray *previousArray = [previous isKindOfClass:[NSArray class]] ? previous : @[];
+    if (![previousArray isEqualToArray:kept]) {
+        [spec setProperty:kept forKey:@"followUpItems"];
+        // 单元格是缓存在 specifier 上的，不清掉的话角标还是旧数字
+        [spec setProperty:nil forKey:@"cellObject"];
+    }
     [spec setProperty:@([kept count]) forKey:@"badgeNumber"];
     APSNSetIconBadge([kept count]);
-    if ([kept count] == previousCount && [kept count] == [items count]) {
-        return NO;
-    }
-    if ([kept count] != previousCount) {
-        NSMutableArray *titles = [NSMutableArray array];
-        for (id item in kept) {
-            NSString *title = APSNItemTitle(item);
-            [titles addObject:title ?: @"?"];
-        }
-        APSNWriteState([NSString stringWithFormat:@"row badge=%@ items=%@",
-                                                  APSNSpecifierValue(spec, @"badgeNumber"),
-                                                  [titles componentsJoinedByString:@" | "]]);
-        os_log(APSNLog(), "APSN hid %lu of %lu follow-up items",
-               (unsigned long)([items count] - [kept count]), (unsigned long)[items count]);
-        APSNWriteState([NSString stringWithFormat:@"hid %lu of %lu items",
-                                                  (unsigned long)([items count] - [kept count]),
-                                                  (unsigned long)[items count]]);
-    }
-    return YES;
+    return NO;
 }
 
 // 首页列表里那一行的下标（没有就 NSNotFound）
@@ -399,34 +360,12 @@ static NSUInteger APSNFollowUpIndex(NSArray *specs) {
     return NSNotFound;
 }
 
-// 之前整行被删掉时留着的那个 specifier：再需要它时插回原位，
-// 这样不用让「设置」整个重建列表（重建会连带把面板的列表清成空白）。
-static void APSNRestoreRemovedRow(id controller) {
-    if (APSNRemovedSpec == nil || !APSNRowShouldShow()) {
-        return;
-    }
-    if (![controller respondsToSelector:@selector(insertSpecifier:atIndex:animated:)]) {
-        return;
-    }
-    id spec = APSNRemovedSpec;
-    APSNRemovedSpec = nil;
-    id specs = APSNSpecifierValue(controller, @"specifiers");
-    NSInteger at = APSNRemovedIndex;
-    if (at < 0 || at > (NSInteger)[specs count]) {
-        at = (NSInteger)[specs count];
-    }
-    APSNRemovedIndex = -1;
-    [(id)controller insertSpecifier:spec atIndex:at animated:NO];
-    os_log(APSNLog(), "APSN put the follow-up row back at %ld", (long)at);
-}
-
-// 运行时刷新。改完必须走 PSListController 自己的接口（reloadSpecifier: /
-// removeSpecifier:animated:）：直接改 _specifiers 数组表格不会跟着变，
-// 表现就是角标数字不变、整行删掉后还留一格空白。
+// 运行时刷新：只改这一行自己的内容，行本身留在列表里（隐藏靠高度）。
+// 改完仍然走 PSListController 的 reloadSpecifier:，让表格重新问一次高度和角标。
 static BOOL APSNUpdateLive(id controller) {
     id specs = APSNSpecifierValue(controller, @"specifiers");
     if (![specs isKindOfClass:[NSArray class]] || [specs count] == 0) {
-        APSNWriteState([NSString stringWithFormat:@"%@: no follow-up specifier in %lu",
+        APSNWriteState([NSString stringWithFormat:@"%@: no specifier list yet (%lu)",
                                                   APSNClassName(controller),
                                                   (unsigned long)[specs count]]);
         return NO;
@@ -437,70 +376,26 @@ static BOOL APSNUpdateLive(id controller) {
     }
     id spec = specs[index];
 
-    // 原始条目存一份，之后每次都从它算起，这样开关关掉时能把条目还原回来
-    id items = APSNSpecifierValue(spec, @"apelinOriginalItems");
-    if (![items isKindOfClass:[NSArray class]] || [items count] == 0) {
-        items = APSNSpecifierValue(spec, @"followUpItems");
-        if (![items isKindOfClass:[NSArray class]] || [items count] == 0) {
-            return NO;
-        }
-        [spec setProperty:items forKey:@"apelinOriginalItems"];
-    }
-    APSNWriteItems(items);
-
-    NSMutableArray *kept = [NSMutableArray array];
-    for (id item in items) {
-        NSString *kind = APSNItemKind(item);
-        BOOL hidden = kind != nil &&
-            APSNPreferenceBool([APSNItemKeyPrefix stringByAppendingString:kind]);
-        if (!hidden) {
-            [kept addObject:item];
-        }
-    }
-
-    if (APSNPreferenceBool(APSNHideGroupKey) || [kept count] == 0) {
-        if (![controller respondsToSelector:@selector(removeSpecifier:animated:)]) {
-            return NO;
-        }
-        APSNRemovedSpec = spec;
-        APSNRemovedIndex = (NSInteger)index;
-        [(id)controller removeSpecifier:spec animated:NO];
-        APSNSetIconBadge(0);
-        os_log(APSNLog(), "APSN removed follow-up row (live) hideGroup=%d kept=%lu of %lu",
-               (int)APSNPreferenceBool(APSNHideGroupKey),
-               (unsigned long)[kept count], (unsigned long)[items count]);
-        APSNWriteState(@"removed follow-up row (live)");
-        return YES;
-    }
-
+    BOOL wasHidden = [APSNSpecifierValue(spec, APSNHiddenKey) boolValue];
     id previous = APSNSpecifierValue(spec, @"followUpItems");
-    NSArray *previousArray = [previous isKindOfClass:[NSArray class]] ? previous : @[];
+    NSUInteger previousCount = [previous isKindOfClass:[NSArray class]] ? [previous count] : 0;
+
+    BOOL hidden = APSNApplyFollowUpVisibility(spec);
+    id now = APSNSpecifierValue(spec, @"followUpItems");
+    NSUInteger nowCount = [now isKindOfClass:[NSArray class]] ? [now count] : 0;
+
     // 已经是这个样子了就不动表格，免得每次刷新都重建这一行
-    if ([previousArray isEqualToArray:kept] &&
-        [APSNSpecifierValue(spec, @"badgeNumber") integerValue] == (NSInteger)[kept count]) {
+    if (hidden == wasHidden && nowCount == previousCount) {
         return NO;
     }
-    NSUInteger previousCount = [previousArray count];
-    [spec setProperty:kept forKey:@"followUpItems"];
-    [spec setProperty:@([kept count]) forKey:@"badgeNumber"];
-    APSNSetIconBadge([kept count]);
-    // 单元格是缓存在 specifier 上的，不清掉的话角标还是旧数字
-    [spec setProperty:nil forKey:@"cellObject"];
     if ([controller respondsToSelector:@selector(reloadSpecifier:)]) {
         [(id)controller reloadSpecifier:spec];
     }
-    if ([kept count] != previousCount) {
-        NSMutableArray *titles = [NSMutableArray array];
-        for (id item in kept) {
-            NSString *title = APSNItemTitle(item);
-            [titles addObject:title ?: @"?"];
-        }
-        os_log(APSNLog(), "APSN hid %lu of %lu follow-up items",
-               (unsigned long)([items count] - [kept count]), (unsigned long)[items count]);
-        APSNWriteState([NSString stringWithFormat:@"row badge=%lu items=%@",
-                                                  (unsigned long)[kept count],
-                                                  [titles componentsJoinedByString:@" | "]]);
-    }
+    os_log(APSNLog(), "APSN live row hidden=%d -> %d items=%lu -> %lu",
+           (int)wasHidden, (int)hidden, (unsigned long)previousCount, (unsigned long)nowCount);
+    APSNWriteState([NSString stringWithFormat:@"live row hidden=%d items=%lu/%lu",
+                                              (int)hidden, (unsigned long)nowCount,
+                                              (unsigned long)previousCount]);
     return YES;
 }
 
@@ -645,7 +540,6 @@ static BOOL APSNHasFollowUpRow(id controller) {
 
 static void APSNRefresh(NSString *reason) {
     static BOOL wroteMissingRoot;
-    static BOOL reloading;
     // 首页控制器在 viewWillAppear 时抓到过，直接用它，不再靠视图树搜索
     UIViewController *root = APSNKnownRoot != nil ? APSNKnownRoot : APSNRootListController();
     if (root == nil) {
@@ -657,22 +551,8 @@ static void APSNRefresh(NSString *reason) {
     }
     wroteMissingRoot = NO;
     APSNDumpSpecifiers(root);
-    APSNRestoreRemovedRow(root);
     if (APSNUpdateLive(root)) {
         os_log(APSNLog(), "APSN refreshed (%{public}@)", reason);
-    }
-    // 行没了又没有留底（比如系统自己重建过列表）时，只能让「设置」重新装配一次；
-    // 只在设置变更时做，定时器不去反复重建。
-    if ([reason isEqualToString:@"prefs changed"] && !reloading && APSNRemovedSpec == nil &&
-        !APSNHasFollowUpRow(root) && APSNRowShouldShow()) {
-        reloading = YES;
-        @try {
-            [(id)root performSelector:@selector(reloadSpecifiers)];
-        } @catch (__unused NSException *exception) {
-        }
-        reloading = NO;
-        APSNWriteState(@"rebuilt list to bring the row back");
-        APSNUpdateLive(root);
     }
 }
 
@@ -795,20 +675,15 @@ static void (*OriginalSetSpecifiers)(id, SEL, NSArray *);
 // 不依赖 reloadSpecifiers 有没有被调用。
 static void APSNHookedSetSpecifiers(id self, SEL _cmd, NSArray *specifiers) {
     if ([specifiers isKindOfClass:[NSArray class]] && [specifiers count] > 0) {
-        NSMutableArray *filtered = [specifiers mutableCopy];
-        BOOL hadRow = APSNFollowUpIndex(specifiers) != NSNotFound;
-        if (APSNFilterSpecifiers(filtered)) {
-            os_log(APSNLog(), "APSN setSpecifiers %{public}@ %lu -> %lu (row=%d)",
-                   APSNClassName(self), (unsigned long)[specifiers count],
-                   (unsigned long)[filtered count], (int)hadRow);
-            APSNWriteState([NSString stringWithFormat:@"setSpecifiers %@ -> %lu (was %lu)",
+        NSUInteger index = APSNFollowUpIndex(specifiers);
+        if (index != NSNotFound) {
+            BOOL hidden = APSNApplyFollowUpVisibility(specifiers[index]);
+            os_log(APSNLog(), "APSN setSpecifiers %{public}@ %lu hidden=%d",
+                   APSNClassName(self), (unsigned long)[specifiers count], (int)hidden);
+            APSNWriteState([NSString stringWithFormat:@"setSpecifiers %@ %lu hidden=%d",
                                                       APSNClassName(self),
-                                                      (unsigned long)[filtered count],
-                                                      (unsigned long)[specifiers count]]);
-            specifiers = filtered;
-        } else if (hadRow) {
-            os_log(APSNLog(), "APSN setSpecifiers %{public}@ %lu, row kept",
-                   APSNClassName(self), (unsigned long)[specifiers count]);
+                                                      (unsigned long)[specifiers count],
+                                                      (int)hidden]);
         }
     }
     if (OriginalSetSpecifiers != NULL) {
@@ -816,136 +691,89 @@ static void APSNHookedSetSpecifiers(id self, SEL _cmd, NSArray *specifiers) {
     }
 }
 
-// 这一行现在该不该出现在列表里；该出现时顺手把条目过滤好。
-// 插进列表的那一刻就用它拦一次，「设置」首页刚回来时那一闪就没了。
-static BOOL APSNFollowUpSpecifierShouldShow(id spec) {
-    if (APSNPreferenceBool(APSNHideGroupKey)) {
+// 「这一行」的行高：该隐藏时给 0，表格就把它当没有一样画，
+// 但列表的行数不变，下面的分组不会跟着上下跳。
+static id APSNSpecifierAtRowIndexPath(id controller, NSIndexPath *indexPath) {
+    if (indexPath == nil || ![controller respondsToSelector:@selector(indexForIndexPath:)]) {
+        return nil;
+    }
+    NSInteger index = (NSInteger)[(id)controller indexForIndexPath:indexPath];
+    id specs = APSNSpecifierValue(controller, @"specifiers");
+    if (![specs isKindOfClass:[NSArray class]] || index < 0 ||
+        index >= (NSInteger)[specs count]) {
+        return nil;
+    }
+    return specs[(NSUInteger)index];
+}
+
+static BOOL APSNIsHiddenFollowUpSpec(id spec) {
+    if (spec == nil) {
         return NO;
     }
-    id items = APSNSpecifierValue(spec, @"apelinOriginalItems");
-    if (![items isKindOfClass:[NSArray class]] || [items count] == 0) {
-        items = APSNSpecifierValue(spec, @"followUpItems");
-        if (![items isKindOfClass:[NSArray class]] || [items count] == 0) {
-            return YES;
-        }
-        [spec setProperty:items forKey:@"apelinOriginalItems"];
-    }
-    NSMutableArray *kept = [NSMutableArray array];
-    for (id item in items) {
-        NSString *kind = APSNItemKind(item);
-        BOOL hidden = kind != nil &&
-            APSNPreferenceBool([APSNItemKeyPrefix stringByAppendingString:kind]);
-        if (!hidden) {
-            [kept addObject:item];
-        }
-    }
-    if ([kept count] == 0) {
+    id identifier = APSNSpecifierValue(spec, @"identifier");
+    if (![identifier isKindOfClass:[NSString class]] || ![identifier hasPrefix:APSNFollowUpPrefix]) {
         return NO;
     }
-    [spec setProperty:kept forKey:@"followUpItems"];
-    [spec setProperty:@([kept count]) forKey:@"badgeNumber"];
-    [spec setProperty:nil forKey:@"cellObject"];
-    APSNSetIconBadge([kept count]);
-    return YES;
+    return APSNFollowUpHiddenNow(spec);
 }
 
-static void (*OriginalInsertSpecifier)(id, SEL, id, NSInteger, BOOL);
-static void (*OriginalAddSpecifier)(id, SEL, id);
-static void (*OriginalInsertContiguous)(id, SEL, NSArray *, NSInteger);
-static void (*OriginalPrivateInsertContiguous)(id, SEL, NSArray *, NSInteger, BOOL);
+static CGFloat (*OriginalHeightForRow)(id, SEL, UITableView *, NSIndexPath *);
+static CGFloat (*OriginalEstimatedHeightForRow)(id, SEL, UITableView *, NSIndexPath *);
+static CGFloat (*OriginalHeightForHeader)(id, SEL, UITableView *, NSInteger);
+static CGFloat (*OriginalHeightForFooter)(id, SEL, UITableView *, NSInteger);
 
-// 系统那一行是一批 specifier 一起插进来的（insertContiguousSpecifiers:atIndex:），
-// 不走 insertSpecifier:，所以这里也得拦一遍。
-static NSArray *APSNFilterInsertedSpecifiers(id self, NSArray *specifiers, NSInteger index) {
-    if (![specifiers isKindOfClass:[NSArray class]] || [specifiers count] == 0) {
-        return specifiers;
+static CGFloat APSNHookedHeightForRow(id self, SEL _cmd, UITableView *tableView,
+                                      NSIndexPath *indexPath) {
+    if (APSNIsHomeController(self) &&
+        APSNIsHiddenFollowUpSpec(APSNSpecifierAtRowIndexPath(self, indexPath))) {
+        return 0.0;
     }
-    NSString *name = APSNClassName(self);
-    if ([name hasPrefix:@"APSNoSuggestions"]) {
-        return specifiers;
-    }
-    NSMutableArray *kept = [NSMutableArray array];
-    BOOL dropped = NO;
-    for (NSUInteger i = 0; i < [specifiers count]; i++) {
-        id spec = specifiers[i];
-        id identifier = APSNSpecifierValue(spec, @"identifier");
-        if ([identifier isKindOfClass:[NSString class]] &&
-            [identifier hasPrefix:APSNFollowUpPrefix] &&
-            !APSNFollowUpSpecifierShouldShow(spec)) {
-            APSNRemovedSpec = spec;
-            APSNRemovedIndex = index >= 0 ? index + (NSInteger)i : -1;
-            dropped = YES;
-            continue;
-        }
-        [kept addObject:spec];
-    }
-    if (!dropped) {
-        return specifiers;
-    }
-    APSNSetIconBadge(0);
-    os_log(APSNLog(), "APSN blocked follow-up row insert (%lu -> %lu) at %ld",
-           (unsigned long)[specifiers count], (unsigned long)[kept count], (long)index);
-    return kept;
+    return OriginalHeightForRow != NULL
+        ? OriginalHeightForRow(self, _cmd, tableView, indexPath) : UITableViewAutomaticDimension;
 }
 
-static void APSNHookedInsertContiguous(id self, SEL _cmd, NSArray *specifiers, NSInteger index) {
-    NSArray *kept = APSNFilterInsertedSpecifiers(self, specifiers, index);
-    if ([specifiers count] > 0 && [kept count] == 0) {
-        return;
+static CGFloat APSNHookedEstimatedHeightForRow(id self, SEL _cmd, UITableView *tableView,
+                                               NSIndexPath *indexPath) {
+    if (APSNIsHomeController(self) &&
+        APSNIsHiddenFollowUpSpec(APSNSpecifierAtRowIndexPath(self, indexPath))) {
+        return 0.0;
     }
-    if (OriginalInsertContiguous != NULL) {
-        OriginalInsertContiguous(self, _cmd, kept, index);
-    }
+    return OriginalEstimatedHeightForRow != NULL
+        ? OriginalEstimatedHeightForRow(self, _cmd, tableView, indexPath)
+        : UITableViewAutomaticDimension;
 }
 
-static void APSNHookedPrivateInsertContiguous(id self, SEL _cmd, NSArray *specifiers,
-                                             NSInteger index, BOOL animated) {
-    NSArray *kept = APSNFilterInsertedSpecifiers(self, specifiers, index);
-    if ([specifiers count] > 0 && [kept count] == 0) {
-        return;
-    }
-    if (OriginalPrivateInsertContiguous != NULL) {
-        OriginalPrivateInsertContiguous(self, _cmd, kept, index, animated);
-    }
-}
-
-static BOOL APSNHookShouldSkip(id self, id specifier) {
-    NSString *name = APSNClassName(self);
-    if ([name hasPrefix:@"APSNoSuggestions"]) {
+// 这一行是它那一组里唯一一行时，组头和组尾的间距也要一起收掉
+static BOOL APSNIsHiddenFollowUpSection(id controller, UITableView *tableView, NSInteger section) {
+    if (!APSNIsHomeController(controller) || tableView == nil) {
         return NO;
     }
-    id identifier = APSNSpecifierValue(specifier, @"identifier");
-    if (![identifier isKindOfClass:[NSString class]] ||
-        ![identifier hasPrefix:APSNFollowUpPrefix]) {
+    if ([tableView numberOfSections] <= section || section < 0) {
         return NO;
     }
-    return !APSNFollowUpSpecifierShouldShow(specifier);
+    if ([tableView numberOfRowsInSection:section] != 1) {
+        return NO;
+    }
+    NSIndexPath *path = [NSIndexPath indexPathForRow:0 inSection:section];
+    return APSNIsHiddenFollowUpSpec(APSNSpecifierAtRowIndexPath(controller, path));
 }
 
-static void APSNHookedInsertSpecifier(id self, SEL _cmd, id specifier, NSInteger index, BOOL animated) {
-    if (APSNHookShouldSkip(self, specifier)) {
-        APSNRemovedSpec = specifier;
-        APSNRemovedIndex = index;
-        APSNSetIconBadge(0);
-        os_log(APSNLog(), "APSN blocked follow-up row insert at %ld", (long)index);
-        return;
+static CGFloat APSNHookedHeightForHeader(id self, SEL _cmd, UITableView *tableView,
+                                         NSInteger section) {
+    if (APSNIsHiddenFollowUpSection(self, tableView, section)) {
+        return 0.0;
     }
-    if (OriginalInsertSpecifier != NULL) {
-        OriginalInsertSpecifier(self, _cmd, specifier, index, animated);
-    }
+    return OriginalHeightForHeader != NULL
+        ? OriginalHeightForHeader(self, _cmd, tableView, section) : -1.0;
 }
 
-static void APSNHookedAddSpecifier(id self, SEL _cmd, id specifier) {
-    if (APSNHookShouldSkip(self, specifier)) {
-        APSNRemovedSpec = specifier;
-        APSNRemovedIndex = -1;
-        APSNSetIconBadge(0);
-        os_log(APSNLog(), "APSN blocked follow-up row append");
-        return;
+static CGFloat APSNHookedHeightForFooter(id self, SEL _cmd, UITableView *tableView,
+                                         NSInteger section) {
+    if (APSNIsHiddenFollowUpSection(self, tableView, section)) {
+        return 0.0;
     }
-    if (OriginalAddSpecifier != NULL) {
-        OriginalAddSpecifier(self, _cmd, specifier);
-    }
+    return OriginalHeightForFooter != NULL
+        ? OriginalHeightForFooter(self, _cmd, tableView, section) : -1.0;
 }
 
 static BOOL APSNInstallHooks(void) {
@@ -984,42 +812,44 @@ static BOOL APSNInstallHooks(void) {
         }
     }
 
-    // 列表是边装配边往表格里插的：在这一行被插进来的那一刻就拦掉，
-    // 首页回来时才不会先闪一下再消失。
-    if (rootController != Nil) {
-        SEL insertSelector = @selector(insertSpecifier:atIndex:animated:);
-        if (OriginalInsertSpecifier == NULL) {
-            Class owner = APSNImplementingClass(rootController, insertSelector);
+    // 整行隐藏靠行高：PSListController 自己实现了 tableView:heightForRowAtIndexPath:
+    // 等几个表格代理方法，把它们包一层就够了，列表的行数从头到尾不变。
+    Class listController = objc_getClass("PSListController");
+    if (listController != Nil) {
+        if (OriginalHeightForRow == NULL) {
+            Class owner = APSNImplementingClass(listController,
+                                                @selector(tableView:heightForRowAtIndexPath:));
             if (owner != Nil) {
-                MSHookMessageEx(owner, insertSelector,
-                                (IMP)APSNHookedInsertSpecifier,
-                                (IMP *)&OriginalInsertSpecifier);
+                MSHookMessageEx(owner, @selector(tableView:heightForRowAtIndexPath:),
+                                (IMP)APSNHookedHeightForRow,
+                                (IMP *)&OriginalHeightForRow);
             }
         }
-        if (OriginalAddSpecifier == NULL) {
-            Class owner = APSNImplementingClass(rootController, @selector(addSpecifier:));
+        if (OriginalEstimatedHeightForRow == NULL) {
+            Class owner = APSNImplementingClass(listController,
+                                                @selector(tableView:estimatedHeightForRowAtIndexPath:));
             if (owner != Nil) {
-                MSHookMessageEx(owner, @selector(addSpecifier:),
-                                (IMP)APSNHookedAddSpecifier,
-                                (IMP *)&OriginalAddSpecifier);
+                MSHookMessageEx(owner, @selector(tableView:estimatedHeightForRowAtIndexPath:),
+                                (IMP)APSNHookedEstimatedHeightForRow,
+                                (IMP *)&OriginalEstimatedHeightForRow);
             }
         }
-        SEL contiguousSelector = @selector(insertContiguousSpecifiers:atIndex:);
-        if (OriginalInsertContiguous == NULL) {
-            Class owner = APSNImplementingClass(rootController, contiguousSelector);
+        if (OriginalHeightForHeader == NULL) {
+            Class owner = APSNImplementingClass(listController,
+                                                @selector(tableView:heightForHeaderInSection:));
             if (owner != Nil) {
-                MSHookMessageEx(owner, contiguousSelector,
-                                (IMP)APSNHookedInsertContiguous,
-                                (IMP *)&OriginalInsertContiguous);
+                MSHookMessageEx(owner, @selector(tableView:heightForHeaderInSection:),
+                                (IMP)APSNHookedHeightForHeader,
+                                (IMP *)&OriginalHeightForHeader);
             }
         }
-        SEL privateContiguousSelector = NSSelectorFromString(@"_insertContiguousSpecifiers:atIndex:animated:");
-        if (OriginalPrivateInsertContiguous == NULL) {
-            Class owner = APSNImplementingClass(rootController, privateContiguousSelector);
+        if (OriginalHeightForFooter == NULL) {
+            Class owner = APSNImplementingClass(listController,
+                                                @selector(tableView:heightForFooterInSection:));
             if (owner != Nil) {
-                MSHookMessageEx(owner, privateContiguousSelector,
-                                (IMP)APSNHookedPrivateInsertContiguous,
-                                (IMP *)&OriginalPrivateInsertContiguous);
+                MSHookMessageEx(owner, @selector(tableView:heightForFooterInSection:),
+                                (IMP)APSNHookedHeightForFooter,
+                                (IMP *)&OriginalHeightForFooter);
             }
         }
     }

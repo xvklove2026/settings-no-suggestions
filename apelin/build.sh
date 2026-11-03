@@ -22,37 +22,34 @@ VERSION="$(sed -n 's/^Version:[[:space:]]*//p' control)"
     exit 1
 }
 
-# Apelin 的开发支持组件（substrate.h、Preferences 头文件）在 bootstrap 里，
-# 编译器的路径是真实路径，roothide 上要从项目真实路径里取回 jbroot。
-if [ "${APELIN_BOOTSTRAP}" = roothide ]; then
-    # 构建脚本在 bootstrap 的 shell 里（jbroot 就是它的 /，真实系统在 /rootfs 下），
-    # 而 clang 用真实路径：在真实根下找出带开发支持组件的那个 .jbroot-*。
-    VROOT=/rootfs
-    JBROOT=""
-    for d in /rootfs/private/var/containers/Bundle/Application/.jbroot-*; do
-        if [ -d "${d}/usr/share/apelin/development" ]; then
-            JBROOT="${d#/rootfs}"
-            break
-        fi
-    done
-    [ -n "${JBROOT}" ] || {
-        echo "build: cannot locate the bootstrap root" >&2
-        exit 1
-    }
-else
-    VROOT=""
-    JBROOT=/var/jb
-fi
-echo "build: bootstrap root is ${JBROOT}" >&2
-DEV="${JBROOT}/usr/share/apelin/development"
+# Apelin 的开发支持组件（substrate.h、Preferences 头文件）装在引导自己的 root 里：
+# roothide 在 .jbroot-* 下，rootless 在 /var/jb 下。脚本跑在 bootstrap 的 shell 里
+# （jbroot 是它的 /，真实系统在 /rootfs 下），而 clang 用真实路径，所以先在 shell
+# 视角的 /rootfs 下把那个 root 找出来，再去掉 /rootfs 前缀交给编译器。
+# 两个目标用的是同一份头文件，编 rootless 包时也从这里取。
+DEV=""
+DEVSHELL=""
+for d in /rootfs/private/var/containers/Bundle/Application/.jbroot-* \
+         /rootfs/var/jb /var/jb; do
+    if [ -d "${d}/usr/share/apelin/development" ]; then
+        DEVSHELL="${d}/usr/share/apelin/development"
+        DEV="${d#/rootfs}/usr/share/apelin/development"
+        break
+    fi
+done
+[ -n "${DEV}" ] && [ -n "${DEVSHELL}" ] || {
+    echo "build: cannot locate apelin development support" >&2
+    exit 1
+}
+echo "build: development support at ${DEV}" >&2
 TWEAK_INC="${DEV}/wiki.qaq.apelin.dev.tweak/support/include"
 PREFS_INC="${DEV}/wiki.qaq.apelin.dev.preferences/support/include"
 
-[ -f "${VROOT}${TWEAK_INC}/substrate.h" ] || {
+[ -f "${DEVSHELL}/wiki.qaq.apelin.dev.tweak/support/include/substrate.h" ] || {
     echo "build: missing ${TWEAK_INC}/substrate.h" >&2
     exit 1
 }
-[ -f "${VROOT}${PREFS_INC}/Preferences/PSListController.h" ] || {
+[ -f "${DEVSHELL}/wiki.qaq.apelin.dev.preferences/support/include/Preferences/PSListController.h" ] || {
     echo "build: missing ${PREFS_INC}/Preferences/PSListController.h" >&2
     exit 1
 }
@@ -61,16 +58,19 @@ DEFS="-DAPELIN_PACKAGE_ID=\"${PKG_ID}\" -DAPELIN_VERSION=\"${VERSION}\" -DAPELIN
 case "${APELIN_BOOTSTRAP}" in
     roothide)
         DEFS="${DEFS} -DAPELIN_BOOTSTRAP_ROOTHIDE=1"
-        ARCHS="arm64e"
         ;;
     *)
         DEFS="${DEFS} -DAPELIN_BOOTSTRAP_ROOTLESS=1"
-        ARCHS="arm64 arm64e"
         ;;
 esac
+# arm64e 是本机原生架构，arm64 让 A11 及更早的设备（以及 arm64 的引导）也能
+# 加载同一个 dylib：两种引导都编两个切片，最后用 lipo 合成一个通用二进制。
+ARCHS="arm64 arm64e"
 
 OBJ="${stage}/.obj"
-mkdir -p "${OBJ}" "${stage}/Library/MobileSubstrate/DynamicLibraries"
+# rootless 的包内路径从 /var/jb 起（APELIN_PREFIX），roothide 上为空。
+DEST="${stage}${APELIN_PREFIX}"
+mkdir -p "${OBJ}" "${DEST}/Library/MobileSubstrate/DynamicLibraries"
 
 # 1. tweak 本体
 for arch in ${ARCHS}; do
@@ -83,19 +83,15 @@ for arch in ${ARCHS}; do
         Sources/Tweak.m \
         -o "${OBJ}/${TWEAK}.${arch}.dylib"
 done
-if [ "${ARCHS}" = "arm64e" ]; then
-    cp "${OBJ}/${TWEAK}.arm64e.dylib" "${OBJ}/${TWEAK}.dylib"
-else
-    lipo -create -output "${OBJ}/${TWEAK}.dylib" \
-        "${OBJ}/${TWEAK}.arm64.dylib" "${OBJ}/${TWEAK}.arm64e.dylib"
-fi
+lipo -create -output "${OBJ}/${TWEAK}.dylib" \
+    "${OBJ}/${TWEAK}.arm64.dylib" "${OBJ}/${TWEAK}.arm64e.dylib"
 ldid -S "${OBJ}/${TWEAK}.dylib"
-cp "${OBJ}/${TWEAK}.dylib" "${stage}/Library/MobileSubstrate/DynamicLibraries/${TWEAK}.dylib"
-cp "Resources/${TWEAK}.plist" "${stage}/Library/MobileSubstrate/DynamicLibraries/${TWEAK}.plist"
+cp "${OBJ}/${TWEAK}.dylib" "${DEST}/Library/MobileSubstrate/DynamicLibraries/${TWEAK}.dylib"
+cp "Resources/${TWEAK}.plist" "${DEST}/Library/MobileSubstrate/DynamicLibraries/${TWEAK}.plist"
 
 # 2. 设置面板（存在时才构建）
 if [ -d Sources/Prefs ] && [ -d Resources/Bundle ]; then
-    BUNDLE_DIR="${stage}/Library/PreferenceBundles/${BUNDLE}.bundle"
+    BUNDLE_DIR="${DEST}/Library/PreferenceBundles/${BUNDLE}.bundle"
     mkdir -p "${BUNDLE_DIR}"
     for arch in ${ARCHS}; do
         clang -arch "${arch}" -bundle -fobjc-arc -fvisibility=hidden -O2 \
@@ -109,12 +105,8 @@ if [ -d Sources/Prefs ] && [ -d Resources/Bundle ]; then
             Sources/Prefs/*.m \
             -o "${OBJ}/${BUNDLE}.${arch}"
     done
-    if [ "${ARCHS}" = "arm64e" ]; then
-        cp "${OBJ}/${BUNDLE}.arm64e" "${OBJ}/${BUNDLE}"
-    else
-        lipo -create -output "${OBJ}/${BUNDLE}" \
-            "${OBJ}/${BUNDLE}.arm64" "${OBJ}/${BUNDLE}.arm64e"
-    fi
+    lipo -create -output "${OBJ}/${BUNDLE}" \
+        "${OBJ}/${BUNDLE}.arm64" "${OBJ}/${BUNDLE}.arm64e"
     ldid -S "${OBJ}/${BUNDLE}"
     cp "${OBJ}/${BUNDLE}" "${BUNDLE_DIR}/${BUNDLE}"
     sed -e "s|@PACKAGE_ID@|${PKG_ID}|g" -e "s|@VERSION@|${VERSION}|g" \
@@ -124,9 +116,9 @@ if [ -d Sources/Prefs ] && [ -d Resources/Bundle ]; then
     cp Resources/Bundle/icon.png Resources/Bundle/icon@2x.png \
         Resources/Bundle/icon@3x.png "${BUNDLE_DIR}/"
 
-    mkdir -p "${stage}/Library/PreferenceLoader/Preferences"
+    mkdir -p "${DEST}/Library/PreferenceLoader/Preferences"
     cp Resources/Bundle/Entry.plist \
-        "${stage}/Library/PreferenceLoader/Preferences/${BUNDLE}.plist"
+        "${DEST}/Library/PreferenceLoader/Preferences/${BUNDLE}.plist"
 fi
 
 # 3. 打包
