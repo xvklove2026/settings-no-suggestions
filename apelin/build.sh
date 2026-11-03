@@ -121,7 +121,8 @@ if [ -d Sources/Prefs ] && [ -d Resources/Bundle ]; then
         Resources/Bundle/Root.plist > "${BUNDLE_DIR}/Root.plist"
     sed -e "s|@PACKAGE_ID@|${PKG_ID}|g" -e "s|@VERSION@|${VERSION}|g" \
         Resources/Bundle/Info.plist > "${BUNDLE_DIR}/Info.plist"
-    cp Resources/Bundle/icon.png "${BUNDLE_DIR}/icon.png"
+    cp Resources/Bundle/icon.png Resources/Bundle/icon@2x.png \
+        Resources/Bundle/icon@3x.png "${BUNDLE_DIR}/"
 
     mkdir -p "${stage}/Library/PreferenceLoader/Preferences"
     cp Resources/Bundle/Entry.plist \

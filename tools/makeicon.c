@@ -1,13 +1,19 @@
-// 生成设置面板入口用的图标（icon.png）。
+// 生成设置面板入口用的图标（icon.png / @2x / @3x）。
 // 只用 CoreGraphics + ImageIO，不需要 GPU 或媒体加速框架。
-// 用法：clang -arch arm64e tools/makeicon.c -o /tmp/makeicon -framework CoreGraphics -framework ImageIO -framework CoreFoundation
-//       ldid -S /tmp/makeicon && /tmp/makeicon Resources/Bundle/icon.png
+// 用法：clang -arch arm64e tools/makeicon.c -o <项目内路径> \
+//           -framework CoreGraphics -framework ImageIO -framework CoreFoundation
+//       ldid -S <项目内路径> && <项目内路径> Resources/Bundle/icon.png 29
+// 第二个参数是像素边长（29 / 58 / 87），图形按比例缩放。
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreGraphics/CoreGraphics.h>
 #include <ImageIO/ImageIO.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+// 设计稿按 90x90 画，实际输出时整体缩放
+static const CGFloat kDesignSide = 90;
 
 static void fillRoundedRect(CGContextRef ctx, CGRect rect, CGFloat radius,
                             CGFloat r, CGFloat g, CGFloat b) {
@@ -19,11 +25,16 @@ static void fillRoundedRect(CGContextRef ctx, CGRect rect, CGFloat radius,
 }
 
 int main(int argc, char **argv) {
-    if (argc < 2) {
-        fprintf(stderr, "usage: makeicon <out.png>\n");
+    if (argc < 3) {
+        fprintf(stderr, "usage: makeicon <out.png> <side-pixels>\n");
         return 2;
     }
-    const size_t side = 90;
+    const size_t side = (size_t)atoi(argv[2]);
+    if (side < 8 || side > 1024) {
+        fprintf(stderr, "makeicon: side out of range\n");
+        return 2;
+    }
+
     CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
     CGContextRef ctx = CGBitmapContextCreate(NULL, side, side, 8, 0, space,
                                              kCGImageAlphaPremultipliedLast);
@@ -32,9 +43,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "makeicon: cannot create bitmap context\n");
         return 1;
     }
+    CGContextScaleCTM(ctx, (CGFloat)side / kDesignSide, (CGFloat)side / kDesignSide);
 
     // 背景：圆角方块，蓝
-    fillRoundedRect(ctx, CGRectMake(0, 0, side, side), 20, 0.04, 0.48, 0.96);
+    fillRoundedRect(ctx, CGRectMake(0, 0, kDesignSide, kDesignSide), 20, 0.04, 0.48, 0.96);
 
     // 禁止符号：白色圆环 + 斜杠
     CGContextSetRGBStrokeColor(ctx, 1, 1, 1, 1);
