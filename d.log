@@ -1,0 +1,29 @@
+count: 3
+entries: (3)
+  [0]
+    category: tweak
+    date: 2026-11-03T01:02:12Z
+    level: notice
+    message: ApelinLoaded 4deb73c9-84c4-475e-9b0e-8b872a7b58ba in Preferences
+    pid: 38331
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [1]
+    category: tweak
+    date: 2026-11-03T01:02:13Z
+    level: notice
+    message: APSNDIAG PSUIPrefsListController specs=100 bundleCells=78 match=去除 Apple ID 建议(APSNoSuggestionsPrefs) id=去除 Apple ID 建议
+    pid: 38331
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [2]
+    category: tweak
+    date: 2026-11-03T01:02:15Z
+    level: notice
+    message: APSNDIAG PSUIPrefsListController specs=265 bundleCells=78 match=去除 Apple ID 建议(APSNoSuggestionsPrefs) id=去除 Apple ID 建议
+    pid: 38331
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+seconds: 22
+source: unified_log
+truncated: 0

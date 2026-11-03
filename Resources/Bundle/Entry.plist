@@ -8,10 +8,14 @@
 		<string>APSNoSuggestionsPrefs</string>
 		<key>cell</key>
 		<string>PSLinkCell</string>
-		<key>label</key>
-		<string>Apple ID 建议</string>
 		<key>detail</key>
 		<string>APSNoSuggestionsRootListController</string>
+		<key>icon</key>
+		<string>icon.png</string>
+		<key>isController</key>
+		<true/>
+		<key>label</key>
+		<string>去除 Apple ID 建议</string>
 	</dict>
 </dict>
 </plist>
