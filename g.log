@@ -1,0 +1,45 @@
+count: 5
+entries: (5)
+  [0]
+    category: tweak
+    date: 2026-11-03T01:47:09Z
+    level: notice
+    message: ApelinLoaded 1c8f5532-baa7-4482-a607-52294d5453dd in Preferences
+    pid: 39910
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [1]
+    category: tweak
+    date: 2026-11-03T01:47:10Z
+    level: notice
+    message: APSN removed follow-up row (live) hideGroup=1 kept=0 of 2
+    pid: 39910
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [2]
+    category: tweak
+    date: 2026-11-03T01:47:21Z
+    level: notice
+    message: ApelinLoaded 1c8f5532-baa7-4482-a607-52294d5453dd in Preferences
+    pid: 39913
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [3]
+    category: tweak
+    date: 2026-11-03T01:47:22Z
+    level: notice
+    message: APSN removed follow-up row (live) hideGroup=1 kept=0 of 2
+    pid: 39913
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [4]
+    category: tweak
+    date: 2026-11-03T01:47:22Z
+    level: notice
+    message: APSN refreshed (timer)
+    pid: 39913
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+seconds: 18
+source: unified_log
+truncated: 0

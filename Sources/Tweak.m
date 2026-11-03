@@ -20,6 +20,14 @@
 #import <objc/runtime.h>
 #import <substrate.h>
 
+// 「设置」的列表控制器（PSListController）改行、改角标用的两个接口；
+// 本 tweak 不链接 Preferences，只在这里按消息声明。
+@interface NSObject (APSNPreferences)
+- (void)removeSpecifier:(id)specifier animated:(BOOL)animated;
+- (void)insertSpecifier:(id)specifier atIndex:(NSInteger)index animated:(BOOL)animated;
+- (void)reloadSpecifier:(id)specifier;
+@end
+
 static NSString *const APSNHideGroupKey = @"hideGroup";
 static NSString *const APSNItemKeyPrefix = @"hide-";
 static NSString *const APSNFollowUpPrefix = @"FollowUpList_";
@@ -176,6 +184,34 @@ static NSString *APSNItemKind(id item) {
     return uid == nil ? nil : APSNStripUUIDs(uid);
 }
 
+// 首页那一行现在还该不该出现：总开关没关，并且至少有一条没被单独关掉。
+// 全部条目都被关掉时行就该消失，这时不必让「设置」重建列表。
+static BOOL APSNRowShouldShow(void) {
+    if (APSNPreferenceBool(APSNHideGroupKey)) {
+        return NO;
+    }
+    NSString *directory = APSNStateDirectory();
+    NSString *path = directory != nil
+        ? [directory stringByAppendingPathComponent:@"items.plist"] : nil;
+    NSArray *items = path != nil ? [NSArray arrayWithContentsOfFile:path] : nil;
+    if ([items count] == 0) {
+        return YES;  // 还没读到过条目，先留着这一行
+    }
+    for (NSDictionary *record in items) {
+        if (![record isKindOfClass:[NSDictionary class]]) {
+            continue;
+        }
+        NSString *kind = record[@"kind"];
+        if (![kind isKindOfClass:[NSString class]] || kind.length == 0) {
+            continue;
+        }
+        if (!APSNPreferenceBool([APSNItemKeyPrefix stringByAppendingString:kind])) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
 // 把见过的每一条建议并进 items.plist（旧的保留，这样条目暂时消失时开关还在）
 static void APSNWriteItems(NSArray *items) {
     NSString *directory = APSNStateDirectory();
@@ -247,6 +283,24 @@ static id APSNSpecifierValue(id spec, NSString *key) {
     return value;
 }
 
+// 「设置」图标上的角标：跟首页还剩几条建议走，0 就是清掉角标。
+// 这个角标是「设置」自己这个 App 的，改它只能在本进程里改。
+static void APSNSetIconBadge(NSUInteger count) {
+    UIApplication *app = [UIApplication sharedApplication];
+    if (app == nil) {
+        return;
+    }
+    if (app.applicationIconBadgeNumber == (NSInteger)count) {
+        return;
+    }
+    app.applicationIconBadgeNumber = (NSInteger)count;
+    os_log(APSNLog(), "APSN icon badge -> %lu", (unsigned long)count);
+}
+
+// 之前整行被删掉时留着的那个 specifier：再需要它时插回原位。
+static id APSNRemovedSpec;
+static NSInteger APSNRemovedIndex = -1;
+
 // 返回是否改动了列表
 static BOOL APSNFilterSpecifiers(NSMutableArray *specs) {
     NSUInteger index = NSNotFound;
@@ -266,6 +320,9 @@ static BOOL APSNFilterSpecifiers(NSMutableArray *specs) {
 
     if (APSNPreferenceBool(APSNHideGroupKey)) {
         [specs removeObjectAtIndex:index];
+        APSNRemovedSpec = spec;
+        APSNRemovedIndex = (NSInteger)index;
+        APSNSetIconBadge(0);
         os_log(APSNLog(), "APSN removed follow-up row (group switch)");
         APSNWriteState(@"removed follow-up row (group switch)");
         return YES;
@@ -299,12 +356,16 @@ static BOOL APSNFilterSpecifiers(NSMutableArray *specs) {
     }
     if ([kept count] == 0) {
         [specs removeObjectAtIndex:index];
+        APSNRemovedSpec = spec;
+        APSNRemovedIndex = (NSInteger)index;
+        APSNSetIconBadge(0);
         os_log(APSNLog(), "APSN removed follow-up row (all items hidden)");
         APSNWriteState(@"removed follow-up row (all items hidden)");
         return YES;
     }
     [spec setProperty:kept forKey:@"followUpItems"];
     [spec setProperty:@([kept count]) forKey:@"badgeNumber"];
+    APSNSetIconBadge([kept count]);
     if ([kept count] == previousCount && [kept count] == [items count]) {
         return NO;
     }
@@ -326,7 +387,43 @@ static BOOL APSNFilterSpecifiers(NSMutableArray *specs) {
     return YES;
 }
 
-static BOOL APSNApplyFilter(id controller) {
+// 首页列表里那一行的下标（没有就 NSNotFound）
+static NSUInteger APSNFollowUpIndex(NSArray *specs) {
+    for (NSUInteger i = 0; i < [specs count]; i++) {
+        id identifier = APSNSpecifierValue(specs[i], @"identifier");
+        if ([identifier isKindOfClass:[NSString class]] &&
+            [identifier hasPrefix:APSNFollowUpPrefix]) {
+            return i;
+        }
+    }
+    return NSNotFound;
+}
+
+// 之前整行被删掉时留着的那个 specifier：再需要它时插回原位，
+// 这样不用让「设置」整个重建列表（重建会连带把面板的列表清成空白）。
+static void APSNRestoreRemovedRow(id controller) {
+    if (APSNRemovedSpec == nil || !APSNRowShouldShow()) {
+        return;
+    }
+    if (![controller respondsToSelector:@selector(insertSpecifier:atIndex:animated:)]) {
+        return;
+    }
+    id spec = APSNRemovedSpec;
+    APSNRemovedSpec = nil;
+    id specs = APSNSpecifierValue(controller, @"specifiers");
+    NSInteger at = APSNRemovedIndex;
+    if (at < 0 || at > (NSInteger)[specs count]) {
+        at = (NSInteger)[specs count];
+    }
+    APSNRemovedIndex = -1;
+    [(id)controller insertSpecifier:spec atIndex:at animated:NO];
+    os_log(APSNLog(), "APSN put the follow-up row back at %ld", (long)at);
+}
+
+// 运行时刷新。改完必须走 PSListController 自己的接口（reloadSpecifier: /
+// removeSpecifier:animated:）：直接改 _specifiers 数组表格不会跟着变，
+// 表现就是角标数字不变、整行删掉后还留一格空白。
+static BOOL APSNUpdateLive(id controller) {
     id specs = APSNSpecifierValue(controller, @"specifiers");
     if (![specs isKindOfClass:[NSArray class]] || [specs count] == 0) {
         APSNWriteState([NSString stringWithFormat:@"%@: no follow-up specifier in %lu",
@@ -334,23 +431,77 @@ static BOOL APSNApplyFilter(id controller) {
                                                   (unsigned long)[specs count]]);
         return NO;
     }
-    if (![specs isKindOfClass:[NSMutableArray class]]) {
-        // 有些控制器把列表交出来的是不可变副本，换成自己的可变数组
-        specs = [specs mutableCopy];
-        @try {
-            [controller setValue:specs forKey:@"specifiers"];
-        } @catch (__unused NSException *exception) {
+    NSUInteger index = APSNFollowUpIndex(specs);
+    if (index == NSNotFound) {
+        return NO;
+    }
+    id spec = specs[index];
+
+    // 原始条目存一份，之后每次都从它算起，这样开关关掉时能把条目还原回来
+    id items = APSNSpecifierValue(spec, @"apelinOriginalItems");
+    if (![items isKindOfClass:[NSArray class]] || [items count] == 0) {
+        items = APSNSpecifierValue(spec, @"followUpItems");
+        if (![items isKindOfClass:[NSArray class]] || [items count] == 0) {
             return NO;
         }
+        [spec setProperty:items forKey:@"apelinOriginalItems"];
     }
-    return APSNFilterSpecifiers(specs);
-}
+    APSNWriteItems(items);
 
-static void APSNReloadTable(id controller) {
-    id table = APSNSpecifierValue(controller, @"table");
-    if ([table isKindOfClass:[UITableView class]]) {
-        [(UITableView *)table reloadData];
+    NSMutableArray *kept = [NSMutableArray array];
+    for (id item in items) {
+        NSString *kind = APSNItemKind(item);
+        BOOL hidden = kind != nil &&
+            APSNPreferenceBool([APSNItemKeyPrefix stringByAppendingString:kind]);
+        if (!hidden) {
+            [kept addObject:item];
+        }
     }
+
+    if (APSNPreferenceBool(APSNHideGroupKey) || [kept count] == 0) {
+        if (![controller respondsToSelector:@selector(removeSpecifier:animated:)]) {
+            return NO;
+        }
+        APSNRemovedSpec = spec;
+        APSNRemovedIndex = (NSInteger)index;
+        [(id)controller removeSpecifier:spec animated:NO];
+        APSNSetIconBadge(0);
+        os_log(APSNLog(), "APSN removed follow-up row (live) hideGroup=%d kept=%lu of %lu",
+               (int)APSNPreferenceBool(APSNHideGroupKey),
+               (unsigned long)[kept count], (unsigned long)[items count]);
+        APSNWriteState(@"removed follow-up row (live)");
+        return YES;
+    }
+
+    id previous = APSNSpecifierValue(spec, @"followUpItems");
+    NSArray *previousArray = [previous isKindOfClass:[NSArray class]] ? previous : @[];
+    // 已经是这个样子了就不动表格，免得每次刷新都重建这一行
+    if ([previousArray isEqualToArray:kept] &&
+        [APSNSpecifierValue(spec, @"badgeNumber") integerValue] == (NSInteger)[kept count]) {
+        return NO;
+    }
+    NSUInteger previousCount = [previousArray count];
+    [spec setProperty:kept forKey:@"followUpItems"];
+    [spec setProperty:@([kept count]) forKey:@"badgeNumber"];
+    APSNSetIconBadge([kept count]);
+    // 单元格是缓存在 specifier 上的，不清掉的话角标还是旧数字
+    [spec setProperty:nil forKey:@"cellObject"];
+    if ([controller respondsToSelector:@selector(reloadSpecifier:)]) {
+        [(id)controller reloadSpecifier:spec];
+    }
+    if ([kept count] != previousCount) {
+        NSMutableArray *titles = [NSMutableArray array];
+        for (id item in kept) {
+            NSString *title = APSNItemTitle(item);
+            [titles addObject:title ?: @"?"];
+        }
+        os_log(APSNLog(), "APSN hid %lu of %lu follow-up items",
+               (unsigned long)([items count] - [kept count]), (unsigned long)[items count]);
+        APSNWriteState([NSString stringWithFormat:@"row badge=%lu items=%@",
+                                                  (unsigned long)[kept count],
+                                                  [titles componentsJoinedByString:@" | "]]);
+    }
+    return YES;
 }
 
 #pragma mark - 找到「设置」首页控制器
@@ -361,6 +512,10 @@ static BOOL APSNIsHomeController(id controller) {
         return NO;
     }
     NSString *name = APSNClassName(controller);
+    // 本 tweak 自己的设置面板类名里也带 Root，绝不能当成首页控制器
+    if ([name hasPrefix:@"APSNoSuggestions"]) {
+        return NO;
+    }
     return [name containsString:@"Root"] || [name isEqualToString:@"PSUIPrefsListController"];
 }
 
@@ -502,14 +657,14 @@ static void APSNRefresh(NSString *reason) {
     }
     wroteMissingRoot = NO;
     APSNDumpSpecifiers(root);
-    if (APSNApplyFilter(root)) {
-        APSNReloadTable(root);
+    APSNRestoreRemovedRow(root);
+    if (APSNUpdateLive(root)) {
         os_log(APSNLog(), "APSN refreshed (%{public}@)", reason);
     }
-    // 整行被删掉了（总开关或全部条目都被关掉），只能让「设置」重新装配一次列表；
+    // 行没了又没有留底（比如系统自己重建过列表）时，只能让「设置」重新装配一次；
     // 只在设置变更时做，定时器不去反复重建。
-    if ([reason isEqualToString:@"prefs changed"] && !reloading &&
-        !APSNHasFollowUpRow(root) && !APSNPreferenceBool(APSNHideGroupKey)) {
+    if ([reason isEqualToString:@"prefs changed"] && !reloading && APSNRemovedSpec == nil &&
+        !APSNHasFollowUpRow(root) && APSNRowShouldShow()) {
         reloading = YES;
         @try {
             [(id)root performSelector:@selector(reloadSpecifiers)];
@@ -517,9 +672,7 @@ static void APSNRefresh(NSString *reason) {
         }
         reloading = NO;
         APSNWriteState(@"rebuilt list to bring the row back");
-        if (APSNApplyFilter(root)) {
-            APSNReloadTable(root);
-        }
+        APSNUpdateLive(root);
     }
 }
 
@@ -584,9 +737,7 @@ static void APSNHookedReloadSpecifiers(id self, SEL _cmd) {
     }
     APSNRememberRoot(self);
     APSNWriteState([NSString stringWithFormat:@"hook(base) %@", APSNClassName(self)]);
-    if (APSNApplyFilter(self)) {
-        APSNReloadTable(self);
-    }
+    APSNUpdateLive(self);
 }
 
 static void APSNHookedRootReloadSpecifiers(id self, SEL _cmd) {
@@ -595,9 +746,7 @@ static void APSNHookedRootReloadSpecifiers(id self, SEL _cmd) {
     }
     APSNRememberRoot(self);
     APSNWriteState([NSString stringWithFormat:@"hook(root) %@", APSNClassName(self)]);
-    if (APSNApplyFilter(self)) {
-        APSNReloadTable(self);
-    }
+    APSNUpdateLive(self);
 }
 
 static BOOL APSNHook(Class cls, SEL selector, IMP replacement, IMP *original) {
@@ -626,14 +775,16 @@ static void APSNHookedViewWillAppear(id self, SEL _cmd, BOOL animated) {
     }
     APSNRememberRoot(self);
     APSNWriteState([NSString stringWithFormat:@"hook(appear) %@", APSNClassName(self)]);
-    // 列表是异步装配的（先 33 条，之后才补齐），多过滤几遍
-    for (NSNumber *delay in @[ @0.3, @1.0, @2.5 ]) {
+    id specs = APSNSpecifierValue(self, @"specifiers");
+    os_log(APSNLog(), "APSN appear %{public}@ specs=%lu row=%d",
+           APSNClassName(self), (unsigned long)[specs count],
+           (int)APSNHasFollowUpRow(self));
+    // 列表是异步装配的（先 97 条，之后才补齐），多过滤几遍兜底
+    for (NSNumber *delay in @[ @0.05, @0.2, @0.5, @1.0, @2.5 ]) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
                                      (int64_t)([delay doubleValue] * NSEC_PER_SEC)),
                        dispatch_get_main_queue(), ^{
-            if (APSNApplyFilter(self)) {
-                APSNReloadTable(self);
-            }
+            APSNUpdateLive(self);
         });
     }
 }
@@ -645,16 +796,155 @@ static void (*OriginalSetSpecifiers)(id, SEL, NSArray *);
 static void APSNHookedSetSpecifiers(id self, SEL _cmd, NSArray *specifiers) {
     if ([specifiers isKindOfClass:[NSArray class]] && [specifiers count] > 0) {
         NSMutableArray *filtered = [specifiers mutableCopy];
+        BOOL hadRow = APSNFollowUpIndex(specifiers) != NSNotFound;
         if (APSNFilterSpecifiers(filtered)) {
+            os_log(APSNLog(), "APSN setSpecifiers %{public}@ %lu -> %lu (row=%d)",
+                   APSNClassName(self), (unsigned long)[specifiers count],
+                   (unsigned long)[filtered count], (int)hadRow);
             APSNWriteState([NSString stringWithFormat:@"setSpecifiers %@ -> %lu (was %lu)",
                                                       APSNClassName(self),
                                                       (unsigned long)[filtered count],
                                                       (unsigned long)[specifiers count]]);
             specifiers = filtered;
+        } else if (hadRow) {
+            os_log(APSNLog(), "APSN setSpecifiers %{public}@ %lu, row kept",
+                   APSNClassName(self), (unsigned long)[specifiers count]);
         }
     }
     if (OriginalSetSpecifiers != NULL) {
         OriginalSetSpecifiers(self, _cmd, specifiers);
+    }
+}
+
+// 这一行现在该不该出现在列表里；该出现时顺手把条目过滤好。
+// 插进列表的那一刻就用它拦一次，「设置」首页刚回来时那一闪就没了。
+static BOOL APSNFollowUpSpecifierShouldShow(id spec) {
+    if (APSNPreferenceBool(APSNHideGroupKey)) {
+        return NO;
+    }
+    id items = APSNSpecifierValue(spec, @"apelinOriginalItems");
+    if (![items isKindOfClass:[NSArray class]] || [items count] == 0) {
+        items = APSNSpecifierValue(spec, @"followUpItems");
+        if (![items isKindOfClass:[NSArray class]] || [items count] == 0) {
+            return YES;
+        }
+        [spec setProperty:items forKey:@"apelinOriginalItems"];
+    }
+    NSMutableArray *kept = [NSMutableArray array];
+    for (id item in items) {
+        NSString *kind = APSNItemKind(item);
+        BOOL hidden = kind != nil &&
+            APSNPreferenceBool([APSNItemKeyPrefix stringByAppendingString:kind]);
+        if (!hidden) {
+            [kept addObject:item];
+        }
+    }
+    if ([kept count] == 0) {
+        return NO;
+    }
+    [spec setProperty:kept forKey:@"followUpItems"];
+    [spec setProperty:@([kept count]) forKey:@"badgeNumber"];
+    [spec setProperty:nil forKey:@"cellObject"];
+    APSNSetIconBadge([kept count]);
+    return YES;
+}
+
+static void (*OriginalInsertSpecifier)(id, SEL, id, NSInteger, BOOL);
+static void (*OriginalAddSpecifier)(id, SEL, id);
+static void (*OriginalInsertContiguous)(id, SEL, NSArray *, NSInteger);
+static void (*OriginalPrivateInsertContiguous)(id, SEL, NSArray *, NSInteger, BOOL);
+
+// 系统那一行是一批 specifier 一起插进来的（insertContiguousSpecifiers:atIndex:），
+// 不走 insertSpecifier:，所以这里也得拦一遍。
+static NSArray *APSNFilterInsertedSpecifiers(id self, NSArray *specifiers, NSInteger index) {
+    if (![specifiers isKindOfClass:[NSArray class]] || [specifiers count] == 0) {
+        return specifiers;
+    }
+    NSString *name = APSNClassName(self);
+    if ([name hasPrefix:@"APSNoSuggestions"]) {
+        return specifiers;
+    }
+    NSMutableArray *kept = [NSMutableArray array];
+    BOOL dropped = NO;
+    for (NSUInteger i = 0; i < [specifiers count]; i++) {
+        id spec = specifiers[i];
+        id identifier = APSNSpecifierValue(spec, @"identifier");
+        if ([identifier isKindOfClass:[NSString class]] &&
+            [identifier hasPrefix:APSNFollowUpPrefix] &&
+            !APSNFollowUpSpecifierShouldShow(spec)) {
+            APSNRemovedSpec = spec;
+            APSNRemovedIndex = index >= 0 ? index + (NSInteger)i : -1;
+            dropped = YES;
+            continue;
+        }
+        [kept addObject:spec];
+    }
+    if (!dropped) {
+        return specifiers;
+    }
+    APSNSetIconBadge(0);
+    os_log(APSNLog(), "APSN blocked follow-up row insert (%lu -> %lu) at %ld",
+           (unsigned long)[specifiers count], (unsigned long)[kept count], (long)index);
+    return kept;
+}
+
+static void APSNHookedInsertContiguous(id self, SEL _cmd, NSArray *specifiers, NSInteger index) {
+    NSArray *kept = APSNFilterInsertedSpecifiers(self, specifiers, index);
+    if ([specifiers count] > 0 && [kept count] == 0) {
+        return;
+    }
+    if (OriginalInsertContiguous != NULL) {
+        OriginalInsertContiguous(self, _cmd, kept, index);
+    }
+}
+
+static void APSNHookedPrivateInsertContiguous(id self, SEL _cmd, NSArray *specifiers,
+                                             NSInteger index, BOOL animated) {
+    NSArray *kept = APSNFilterInsertedSpecifiers(self, specifiers, index);
+    if ([specifiers count] > 0 && [kept count] == 0) {
+        return;
+    }
+    if (OriginalPrivateInsertContiguous != NULL) {
+        OriginalPrivateInsertContiguous(self, _cmd, kept, index, animated);
+    }
+}
+
+static BOOL APSNHookShouldSkip(id self, id specifier) {
+    NSString *name = APSNClassName(self);
+    if ([name hasPrefix:@"APSNoSuggestions"]) {
+        return NO;
+    }
+    id identifier = APSNSpecifierValue(specifier, @"identifier");
+    if (![identifier isKindOfClass:[NSString class]] ||
+        ![identifier hasPrefix:APSNFollowUpPrefix]) {
+        return NO;
+    }
+    return !APSNFollowUpSpecifierShouldShow(specifier);
+}
+
+static void APSNHookedInsertSpecifier(id self, SEL _cmd, id specifier, NSInteger index, BOOL animated) {
+    if (APSNHookShouldSkip(self, specifier)) {
+        APSNRemovedSpec = specifier;
+        APSNRemovedIndex = index;
+        APSNSetIconBadge(0);
+        os_log(APSNLog(), "APSN blocked follow-up row insert at %ld", (long)index);
+        return;
+    }
+    if (OriginalInsertSpecifier != NULL) {
+        OriginalInsertSpecifier(self, _cmd, specifier, index, animated);
+    }
+}
+
+static void APSNHookedAddSpecifier(id self, SEL _cmd, id specifier) {
+    if (APSNHookShouldSkip(self, specifier)) {
+        APSNRemovedSpec = specifier;
+        APSNRemovedIndex = -1;
+        APSNSetIconBadge(0);
+        os_log(APSNLog(), "APSN blocked follow-up row append");
+        return;
+    }
+    if (OriginalAddSpecifier != NULL) {
+        OriginalAddSpecifier(self, _cmd, specifier);
     }
 }
 
@@ -691,6 +981,46 @@ static BOOL APSNInstallHooks(void) {
             MSHookMessageEx(owner, @selector(viewWillAppear:),
                             (IMP)APSNHookedViewWillAppear,
                             (IMP *)&OriginalViewWillAppear);
+        }
+    }
+
+    // 列表是边装配边往表格里插的：在这一行被插进来的那一刻就拦掉，
+    // 首页回来时才不会先闪一下再消失。
+    if (rootController != Nil) {
+        SEL insertSelector = @selector(insertSpecifier:atIndex:animated:);
+        if (OriginalInsertSpecifier == NULL) {
+            Class owner = APSNImplementingClass(rootController, insertSelector);
+            if (owner != Nil) {
+                MSHookMessageEx(owner, insertSelector,
+                                (IMP)APSNHookedInsertSpecifier,
+                                (IMP *)&OriginalInsertSpecifier);
+            }
+        }
+        if (OriginalAddSpecifier == NULL) {
+            Class owner = APSNImplementingClass(rootController, @selector(addSpecifier:));
+            if (owner != Nil) {
+                MSHookMessageEx(owner, @selector(addSpecifier:),
+                                (IMP)APSNHookedAddSpecifier,
+                                (IMP *)&OriginalAddSpecifier);
+            }
+        }
+        SEL contiguousSelector = @selector(insertContiguousSpecifiers:atIndex:);
+        if (OriginalInsertContiguous == NULL) {
+            Class owner = APSNImplementingClass(rootController, contiguousSelector);
+            if (owner != Nil) {
+                MSHookMessageEx(owner, contiguousSelector,
+                                (IMP)APSNHookedInsertContiguous,
+                                (IMP *)&OriginalInsertContiguous);
+            }
+        }
+        SEL privateContiguousSelector = NSSelectorFromString(@"_insertContiguousSpecifiers:atIndex:animated:");
+        if (OriginalPrivateInsertContiguous == NULL) {
+            Class owner = APSNImplementingClass(rootController, privateContiguousSelector);
+            if (owner != Nil) {
+                MSHookMessageEx(owner, privateContiguousSelector,
+                                (IMP)APSNHookedPrivateInsertContiguous,
+                                (IMP *)&OriginalPrivateInsertContiguous);
+            }
         }
     }
     return OriginalRootReloadSpecifiers != NULL;

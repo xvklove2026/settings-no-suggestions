@@ -1,0 +1,309 @@
+count: 38
+entries: (38)
+  [0]
+    category: tweak
+    date: 2026-11-03T01:58:36Z
+    level: notice
+    message: ApelinLoaded 405426d9-0c5d-401d-ac6d-4ffc859e88dc in Preferences
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [1]
+    category: tweak
+    date: 2026-11-03T01:58:36Z
+    level: notice
+    message: APSN methods PSListController (113): pui_replaceRows:withRows:header:insertPoint: configureSpin:ofCellForSpecifier:setEnabled: setSpecifiers: specifiers reloadSpecifiers insertContiguousSpecifiers:atIndex: insertSpecifier:atIndex: selectSpecifier: reloadSpecifierAtIndex: removeSpecifier: shouldReloadSpecifiersOnResume setSpecifier: insertContiguousSpecifiers:afterSpecifier: indexOfSpecifier: insertSpecifier:afterSpecifier: shouldDeferPushForSpecifierID: reloadSpecifier: specifier shouldDeferPushForSpecifierID:urlDictionary: specifierForID: removeSpecifierAtIndex: cachedCellForSpecifier: highlightSpecifierWithID: prepareHandlingURLForSpecifierID:resourceDictionary:animatePush: prepareHandlingURLForSpecifierID:resourceDictionary:animatePush:withCompletion: setEditableInsertionPointColor: editableInsertionPointColor setSpecifierID: _addIdentifierForSpecifier: _customViewForSpecifier:class:isHeader: _getGroup:row:ofSpecifierAtIndex:groups: _insertContiguousSpecifiers:atIndex:animated: _moveSpecifierAtIndex:toInd<…>
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [2]
+    category: tweak
+    date: 2026-11-03T01:58:36Z
+    level: notice
+    message: APSN methods PSUIPrefsListController (93): specifiers _primarySpecifierOrdering reloadSpecifiers _reallyLoadThirdPartySpecifiersForApps:shouldAddAppClipSpecifier:withCompletion: passbookSpecifier setConnectedHeadphonesSpecifiers: _saveIconToCacheForAppleAccountSpecifier: configureTopLevelSpecifier: setFollowupSpecifiersGeneral: lazyLoadSpecialBundleForSpecifier: followupSpecifiersAccount _loadThirdPartySpecifiersWithCompletion: _videoSubscriberGroupSpecifier configurePasscodeSpecifierFromSpecifiers: _canSelectSpecifierAtIndexPath: _loadThirdPartySpecifiersIfNecessaryWithCompletion: shouldShowClassKitSpecifier getAllSpecifiers _secondaryAccountSpecifiers set_homeKitSpecifier: _specifierDictionaryForDeveloperBundlePath:identifier: _familySpecifierGenerator appleAccountSpecifierWasTappedWhileInCachedState: _setupAppleAccountSpecifier: set_appleAccountSpecifier: selectSpecifier: updateClassroomSpecifierWithCompletion: _vpnSpecifierGenerator insertionIndexForSpecifier:inSpecifiers: confirmationSpecifierConfirmed<…>
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [3]
+    category: tweak
+    date: 2026-11-03T01:58:36Z
+    level: notice
+    message: APSN appear PSUIPrefsListController specs=97 row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [4]
+    category: tweak
+    date: 2026-11-03T01:58:36Z
+    level: notice
+    message: APSN pass 0.1s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [5]
+    category: tweak
+    date: 2026-11-03T01:58:36Z
+    level: notice
+    message: APSN pass 0.2s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [6]
+    category: tweak
+    date: 2026-11-03T01:58:36Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [7]
+    category: tweak
+    date: 2026-11-03T01:58:36Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [8]
+    category: tweak
+    date: 2026-11-03T01:58:36Z
+    level: notice
+    message: APSN blocked follow-up row insert (96 -> 95) at 2
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [9]
+    category: tweak
+    date: 2026-11-03T01:58:36Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [10]
+    category: tweak
+    date: 2026-11-03T01:58:37Z
+    level: notice
+    message: APSN pass 0.5s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [11]
+    category: tweak
+    date: 2026-11-03T01:58:37Z
+    level: notice
+    message: APSN blocked follow-up row insert (263 -> 262) at 2
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [12]
+    category: tweak
+    date: 2026-11-03T01:58:37Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [13]
+    category: tweak
+    date: 2026-11-03T01:58:37Z
+    level: notice
+    message: APSN pass 1.0s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [14]
+    category: tweak
+    date: 2026-11-03T01:58:39Z
+    level: notice
+    message: APSN pass 2.5s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [15]
+    category: tweak
+    date: 2026-11-03T01:58:40Z
+    level: notice
+    message: APSN appear APSNoSuggestionsRootListController specs=0 row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [16]
+    category: tweak
+    date: 2026-11-03T01:58:40Z
+    level: notice
+    message: APSN pass 0.1s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [17]
+    category: tweak
+    date: 2026-11-03T01:58:40Z
+    level: notice
+    message: APSN pass 0.2s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [18]
+    category: tweak
+    date: 2026-11-03T01:58:40Z
+    level: notice
+    message: APSN pass 0.5s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [19]
+    category: tweak
+    date: 2026-11-03T01:58:41Z
+    level: notice
+    message: APSN pass 1.0s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [20]
+    category: tweak
+    date: 2026-11-03T01:58:42Z
+    level: notice
+    message: APSN appear PSUIPrefsListController specs=264 row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [21]
+    category: tweak
+    date: 2026-11-03T01:58:42Z
+    level: notice
+    message: APSN pass 0.1s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [22]
+    category: tweak
+    date: 2026-11-03T01:58:42Z
+    level: notice
+    message: APSN pass 0.2s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [23]
+    category: tweak
+    date: 2026-11-03T01:58:42Z
+    level: notice
+    message: APSN pass 0.5s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [24]
+    category: tweak
+    date: 2026-11-03T01:58:42Z
+    level: notice
+    message: APSN pass 2.5s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [25]
+    category: tweak
+    date: 2026-11-03T01:58:43Z
+    level: notice
+    message: APSN pass 1.0s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [26]
+    category: tweak
+    date: 2026-11-03T01:58:43Z
+    level: notice
+    message: APSN appear APSNoSuggestionsRootListController specs=0 row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [27]
+    category: tweak
+    date: 2026-11-03T01:58:43Z
+    level: notice
+    message: APSN pass 0.1s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [28]
+    category: tweak
+    date: 2026-11-03T01:58:43Z
+    level: notice
+    message: APSN pass 0.2s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [29]
+    category: tweak
+    date: 2026-11-03T01:58:43Z
+    level: notice
+    message: APSN pass 0.5s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [30]
+    category: tweak
+    date: 2026-11-03T01:58:44Z
+    level: notice
+    message: APSN pass 1.0s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [31]
+    category: tweak
+    date: 2026-11-03T01:58:44Z
+    level: notice
+    message: APSN appear PSUIPrefsListController specs=264 row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [32]
+    category: tweak
+    date: 2026-11-03T01:58:44Z
+    level: notice
+    message: APSN pass 2.5s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [33]
+    category: tweak
+    date: 2026-11-03T01:58:44Z
+    level: notice
+    message: APSN pass 0.1s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [34]
+    category: tweak
+    date: 2026-11-03T01:58:44Z
+    level: notice
+    message: APSN pass 0.2s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [35]
+    category: tweak
+    date: 2026-11-03T01:58:45Z
+    level: notice
+    message: APSN pass 0.5s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [36]
+    category: tweak
+    date: 2026-11-03T01:58:45Z
+    level: notice
+    message: APSN pass 1.0s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [37]
+    category: tweak
+    date: 2026-11-03T01:58:46Z
+    level: notice
+    message: APSN pass 2.5s row=0
+    pid: 40226
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+seconds: 16
+source: unified_log
+truncated: 0

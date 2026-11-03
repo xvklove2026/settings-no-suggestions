@@ -1,0 +1,77 @@
+count: 9
+entries: (9)
+  [0]
+    category: tweak
+    date: 2026-11-03T01:56:38Z
+    level: notice
+    message: ApelinLoaded 02e0fc0f-9e6a-4c2e-9053-82c7e0d5f469 in Preferences
+    pid: 40160
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [1]
+    category: tweak
+    date: 2026-11-03T01:56:38Z
+    level: notice
+    message: APSN methods PSListController (113): pui_replaceRows:withRows:header:insertPoint: configureSpin:ofCellForSpecifier:setEnabled: setSpecifiers: specifiers reloadSpecifiers insertContiguousSpecifiers:atIndex: insertSpecifier:atIndex: selectSpecifier: reloadSpecifierAtIndex: removeSpecifier: shouldReloadSpecifiersOnResume setSpecifier: insertContiguousSpecifiers:afterSpecifier: indexOfSpecifier: insertSpecifier:afterSpecifier: shouldDeferPushForSpecifierID: reloadSpecifier: specifier shouldDeferPushForSpecifierID:urlDictionary: specifierForID: removeSpecifierAtIndex: cachedCellForSpecifier: highlightSpecifierWithID: prepareHandlingURLForSpecifierID:resourceDictionary:animatePush: prepareHandlingURLForSpecifierID:resourceDictionary:animatePush:withCompletion: setEditableInsertionPointColor: editableInsertionPointColor setSpecifierID: _addIdentifierForSpecifier: _customViewForSpecifier:class:isHeader: _getGroup:row:ofSpecifierAtIndex:groups: _insertContiguousSpecifiers:atIndex:animated: _moveSpecifierAtIndex:toInd<…>
+    pid: 40160
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [2]
+    category: tweak
+    date: 2026-11-03T01:56:38Z
+    level: notice
+    message: APSN methods PSUIPrefsListController (93): specifiers _primarySpecifierOrdering reloadSpecifiers _reallyLoadThirdPartySpecifiersForApps:shouldAddAppClipSpecifier:withCompletion: passbookSpecifier setConnectedHeadphonesSpecifiers: _saveIconToCacheForAppleAccountSpecifier: configureTopLevelSpecifier: setFollowupSpecifiersGeneral: lazyLoadSpecialBundleForSpecifier: followupSpecifiersAccount _loadThirdPartySpecifiersWithCompletion: _videoSubscriberGroupSpecifier configurePasscodeSpecifierFromSpecifiers: _canSelectSpecifierAtIndexPath: _loadThirdPartySpecifiersIfNecessaryWithCompletion: shouldShowClassKitSpecifier getAllSpecifiers _secondaryAccountSpecifiers set_homeKitSpecifier: _specifierDictionaryForDeveloperBundlePath:identifier: _familySpecifierGenerator appleAccountSpecifierWasTappedWhileInCachedState: _setupAppleAccountSpecifier: set_appleAccountSpecifier: selectSpecifier: updateClassroomSpecifierWithCompletion: _vpnSpecifierGenerator insertionIndexForSpecifier:inSpecifiers: confirmationSpecifierConfirmed<…>
+    pid: 40160
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [3]
+    category: tweak
+    date: 2026-11-03T01:56:39Z
+    level: notice
+    message: APSN appear PSUIPrefsListController specs=97 row=0
+    pid: 40160
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [4]
+    category: tweak
+    date: 2026-11-03T01:56:39Z
+    level: notice
+    message: APSN pass 0.3s row=0
+    pid: 40160
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [5]
+    category: tweak
+    date: 2026-11-03T01:56:39Z
+    level: notice
+    message: APSN removed follow-up row (live) hideGroup=1 kept=0 of 2
+    pid: 40160
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [6]
+    category: tweak
+    date: 2026-11-03T01:56:39Z
+    level: notice
+    message: APSN refreshed (timer)
+    pid: 40160
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [7]
+    category: tweak
+    date: 2026-11-03T01:56:40Z
+    level: notice
+    message: APSN pass 1.0s row=0
+    pid: 40160
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [8]
+    category: tweak
+    date: 2026-11-03T01:56:41Z
+    level: notice
+    message: APSN pass 2.5s row=0
+    pid: 40160
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+seconds: 16
+source: unified_log
+truncated: 0

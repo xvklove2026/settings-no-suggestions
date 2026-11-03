@@ -14,7 +14,11 @@
   晚加载），它**重写**了 `-reloadSpecifiers`，所以挂 `PSListController` 的父类钩子等不到它。
   另外它的类名里**没有 "Root"**，别用 `containsString:@"Root"` 去认它。
 - 列表是**异步装配**的：`viewWillAppear:` 时只有几十条，稍后才补齐到两百多条，
-  那时 `FollowUpList_` 才出现。所以过滤要做多遍（0.3/1.0/2.5 秒各一次，另加 2 秒定时器兜底）。
+  那时 `FollowUpList_` 才出现。所以过滤要做多遍（0.05/0.2/0.5/1.0/2.5 秒各一次，另加 2 秒定时器兜底）。
+- 那一行是**成批插入**的：走 `-[PSListController insertContiguousSpecifiers:atIndex:]`
+  （以及私有的 `_insertContiguousSpecifiers:atIndex:animated:`），**不走** `insertSpecifier:atIndex:animated:`。
+  只钩后者的话，行会先被插进表里画出来、等下一遍过滤才删掉，用户就会看到约半秒的闪现。
+  两个成批插入的钩子必须在装配时就把它从数组里剔掉，这样它从来不进表。
 - 条目用「稳定 kind」做开关的 key：`clientIdentifier` + `.` + `typeIdentifier`
   （`typeIdentifier` 为空时退回 `clientIdentifier`；都没有时用去掉 UUID 段的 UID）。
   **不要用 UID 做 key**，它随账号/重投递变化。

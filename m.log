@@ -1,0 +1,221 @@
+count: 27
+entries: (27)
+  [0]
+    category: tweak
+    date: 2026-11-03T02:03:45Z
+    level: notice
+    message: ApelinLoaded eec9645c-1c32-488c-8c56-e0a53ab1d037 in Preferences
+    pid: 40345
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [1]
+    category: tweak
+    date: 2026-11-03T02:03:45Z
+    level: notice
+    message: APSN appear PSUIPrefsListController specs=97 row=0
+    pid: 40345
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [2]
+    category: tweak
+    date: 2026-11-03T02:03:46Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40345
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [3]
+    category: tweak
+    date: 2026-11-03T02:03:46Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40345
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [4]
+    category: tweak
+    date: 2026-11-03T02:03:46Z
+    level: notice
+    message: APSN blocked follow-up row insert (96 -> 95) at 2
+    pid: 40345
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [5]
+    category: tweak
+    date: 2026-11-03T02:03:46Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40345
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [6]
+    category: tweak
+    date: 2026-11-03T02:03:46Z
+    level: notice
+    message: APSN blocked follow-up row insert (263 -> 262) at 2
+    pid: 40345
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [7]
+    category: tweak
+    date: 2026-11-03T02:03:46Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40345
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [8]
+    category: tweak
+    date: 2026-11-03T02:03:51Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40345
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [9]
+    category: tweak
+    date: 2026-11-03T02:03:51Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40345
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [10]
+    category: tweak
+    date: 2026-11-03T02:03:52Z
+    level: notice
+    message: ApelinLoaded eec9645c-1c32-488c-8c56-e0a53ab1d037 in Preferences
+    pid: 40349
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [11]
+    category: tweak
+    date: 2026-11-03T02:03:53Z
+    level: notice
+    message: APSN appear PSUIPrefsListController specs=97 row=0
+    pid: 40349
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [12]
+    category: tweak
+    date: 2026-11-03T02:03:53Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40349
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [13]
+    category: tweak
+    date: 2026-11-03T02:03:53Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40349
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [14]
+    category: tweak
+    date: 2026-11-03T02:03:53Z
+    level: notice
+    message: APSN blocked follow-up row insert (96 -> 95) at 2
+    pid: 40349
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [15]
+    category: tweak
+    date: 2026-11-03T02:03:53Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40349
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [16]
+    category: tweak
+    date: 2026-11-03T02:03:53Z
+    level: notice
+    message: APSN blocked follow-up row insert (263 -> 262) at 2
+    pid: 40349
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [17]
+    category: tweak
+    date: 2026-11-03T02:03:53Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40349
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [18]
+    category: tweak
+    date: 2026-11-03T02:03:58Z
+    level: notice
+    message: ApelinLoaded eec9645c-1c32-488c-8c56-e0a53ab1d037 in Preferences
+    pid: 40353
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [19]
+    category: tweak
+    date: 2026-11-03T02:03:58Z
+    level: notice
+    message: APSN appear PSUIPrefsListController specs=97 row=0
+    pid: 40353
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [20]
+    category: tweak
+    date: 2026-11-03T02:03:59Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40353
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [21]
+    category: tweak
+    date: 2026-11-03T02:03:59Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40353
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [22]
+    category: tweak
+    date: 2026-11-03T02:03:59Z
+    level: notice
+    message: APSN blocked follow-up row insert (96 -> 95) at 2
+    pid: 40353
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [23]
+    category: tweak
+    date: 2026-11-03T02:03:59Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40353
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [24]
+    category: tweak
+    date: 2026-11-03T02:03:59Z
+    level: notice
+    message: APSN blocked follow-up row insert (263 -> 262) at 2
+    pid: 40353
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [25]
+    category: tweak
+    date: 2026-11-03T02:03:59Z
+    level: notice
+    message: APSN blocked follow-up row insert (1 -> 0) at 2
+    pid: 40353
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [26]
+    category: tweak
+    date: 2026-11-03T02:04:00Z
+    level: notice
+    message: APSN appear CallAssistRootListController specs=30 row=0
+    pid: 40353
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+seconds: 20
+source: unified_log
+truncated: 0

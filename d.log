@@ -1,27 +1,131 @@
-count: 3
-entries: (3)
+count: 16
+entries: (16)
   [0]
     category: tweak
-    date: 2026-11-03T01:02:12Z
+    date: 2026-11-03T01:43:09Z
     level: notice
-    message: ApelinLoaded 4deb73c9-84c4-475e-9b0e-8b872a7b58ba in Preferences
-    pid: 38331
+    message: ApelinLoaded 1c8f5532-baa7-4482-a607-52294d5453dd in Preferences
+    pid: 39721
     process: Preferences
     subsystem: local.xx.settingsnosuggestions
   [1]
     category: tweak
-    date: 2026-11-03T01:02:13Z
+    date: 2026-11-03T01:43:19Z
     level: notice
-    message: APSNDIAG PSUIPrefsListController specs=100 bundleCells=78 match=去除 Apple ID 建议(APSNoSuggestionsPrefs) id=去除 Apple ID 建议
-    pid: 38331
+    message: APSN icon badge -> 1
+    pid: 39721
     process: Preferences
     subsystem: local.xx.settingsnosuggestions
   [2]
     category: tweak
-    date: 2026-11-03T01:02:15Z
+    date: 2026-11-03T01:43:19Z
     level: notice
-    message: APSNDIAG PSUIPrefsListController specs=265 bundleCells=78 match=去除 Apple ID 建议(APSNoSuggestionsPrefs) id=去除 Apple ID 建议
-    pid: 38331
+    message: APSN hid 1 of 2 follow-up items
+    pid: 39721
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [3]
+    category: tweak
+    date: 2026-11-03T01:43:19Z
+    level: notice
+    message: APSN refreshed (prefs changed)
+    pid: 39721
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [4]
+    category: tweak
+    date: 2026-11-03T01:43:19Z
+    level: notice
+    message: APSN icon badge -> 2
+    pid: 39721
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [5]
+    category: tweak
+    date: 2026-11-03T01:43:19Z
+    level: notice
+    message: APSN hid 0 of 2 follow-up items
+    pid: 39721
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [6]
+    category: tweak
+    date: 2026-11-03T01:43:19Z
+    level: notice
+    message: APSN refreshed (prefs changed)
+    pid: 39721
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [7]
+    category: tweak
+    date: 2026-11-03T01:43:20Z
+    level: notice
+    message: APSN icon badge -> 1
+    pid: 39721
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [8]
+    category: tweak
+    date: 2026-11-03T01:43:20Z
+    level: notice
+    message: APSN hid 1 of 2 follow-up items
+    pid: 39721
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [9]
+    category: tweak
+    date: 2026-11-03T01:43:20Z
+    level: notice
+    message: APSN refreshed (prefs changed)
+    pid: 39721
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [10]
+    category: tweak
+    date: 2026-11-03T01:43:21Z
+    level: notice
+    message: APSN icon badge -> 2
+    pid: 39721
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [11]
+    category: tweak
+    date: 2026-11-03T01:43:21Z
+    level: notice
+    message: APSN hid 0 of 2 follow-up items
+    pid: 39721
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [12]
+    category: tweak
+    date: 2026-11-03T01:43:21Z
+    level: notice
+    message: APSN refreshed (prefs changed)
+    pid: 39721
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [13]
+    category: tweak
+    date: 2026-11-03T01:43:22Z
+    level: notice
+    message: APSN icon badge -> 1
+    pid: 39721
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [14]
+    category: tweak
+    date: 2026-11-03T01:43:22Z
+    level: notice
+    message: APSN hid 1 of 2 follow-up items
+    pid: 39721
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [15]
+    category: tweak
+    date: 2026-11-03T01:43:22Z
+    level: notice
+    message: APSN refreshed (prefs changed)
+    pid: 39721
     process: Preferences
     subsystem: local.xx.settingsnosuggestions
 seconds: 22

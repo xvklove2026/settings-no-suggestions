@@ -97,21 +97,12 @@ static NSString *APSNBundleStatePath(NSString *name) {
 - (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier {
     [super setPreferenceValue:value specifier:specifier];
 
-    // 让 tweak 立刻重新过滤「设置」首页
+    // 让 tweak 立刻重新过滤「设置」首页。
+    // 注意：不要在这里顺手 reloadSpecifiers 首页 —— 面板还压在栈上，
+    // 重建首页会把面板的列表一起清成空白，得退出去再进来才恢复。
     CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
                                          (__bridge CFStringRef)(@APELIN_PACKAGE_ID "/changed"),
                                          NULL, NULL, true);
-
-    // 顺手让首页重新载入一次，返回时就是过滤后的样子
-    for (UIViewController *controller in self.navigationController.viewControllers) {
-        if (controller == self) {
-            continue;
-        }
-        if ([controller respondsToSelector:@selector(reloadSpecifiers)]) {
-            [controller performSelector:@selector(reloadSpecifiers)];
-            break;
-        }
-    }
 }
 
 @end

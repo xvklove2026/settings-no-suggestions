@@ -1,0 +1,149 @@
+count: 18
+entries: (18)
+  [0]
+    category: tweak
+    date: 2026-11-03T02:04:37Z
+    level: notice
+    message: ApelinLoaded eec9645c-1c32-488c-8c56-e0a53ab1d037 in Preferences
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [1]
+    category: tweak
+    date: 2026-11-03T02:04:37Z
+    level: notice
+    message: APSN appear PSUIPrefsListController specs=97 row=0
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [2]
+    category: tweak
+    date: 2026-11-03T02:04:37Z
+    level: notice
+    message: APSN icon badge -> 2
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [3]
+    category: tweak
+    date: 2026-11-03T02:04:42Z
+    level: notice
+    message: APSN appear APSNoSuggestionsRootListController specs=0 row=0
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [4]
+    category: tweak
+    date: 2026-11-03T02:04:43Z
+    level: notice
+    message: APSN icon badge -> 1
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [5]
+    category: tweak
+    date: 2026-11-03T02:04:43Z
+    level: notice
+    message: APSN hid 1 of 2 follow-up items
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [6]
+    category: tweak
+    date: 2026-11-03T02:04:43Z
+    level: notice
+    message: APSN refreshed (prefs changed)
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [7]
+    category: tweak
+    date: 2026-11-03T02:04:43Z
+    level: notice
+    message: APSN icon badge -> 0
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [8]
+    category: tweak
+    date: 2026-11-03T02:04:43Z
+    level: notice
+    message: APSN removed follow-up row (live) hideGroup=0 kept=0 of 2
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [9]
+    category: tweak
+    date: 2026-11-03T02:04:43Z
+    level: notice
+    message: APSN refreshed (prefs changed)
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [10]
+    category: tweak
+    date: 2026-11-03T02:04:44Z
+    level: notice
+    message: APSN appear PSUIPrefsListController specs=264 row=0
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [11]
+    category: tweak
+    date: 2026-11-03T02:04:46Z
+    level: notice
+    message: APSN appear APSNoSuggestionsRootListController specs=0 row=0
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [12]
+    category: tweak
+    date: 2026-11-03T02:04:46Z
+    level: notice
+    message: APSN icon badge -> 1
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [13]
+    category: tweak
+    date: 2026-11-03T02:04:46Z
+    level: notice
+    message: APSN put the follow-up row back at 2
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [14]
+    category: tweak
+    date: 2026-11-03T02:04:47Z
+    level: notice
+    message: APSN icon badge -> 2
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [15]
+    category: tweak
+    date: 2026-11-03T02:04:47Z
+    level: notice
+    message: APSN hid 0 of 2 follow-up items
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [16]
+    category: tweak
+    date: 2026-11-03T02:04:47Z
+    level: notice
+    message: APSN refreshed (prefs changed)
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+  [17]
+    category: tweak
+    date: 2026-11-03T02:04:47Z
+    level: notice
+    message: APSN appear PSUIPrefsListController specs=265 row=1
+    pid: 40368
+    process: Preferences
+    subsystem: local.xx.settingsnosuggestions
+seconds: 16
+source: unified_log
+truncated: 0
