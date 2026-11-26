@@ -7,8 +7,10 @@ permissions:
   contents: write
 jobs:
   compile:
-    runs-on: macos-15
+    runs-on: macos-15-intel
+    timeout-minutes: 20
     strategy:
+      fail-fast: false
       matrix:
         bootstrap: [roothide, rootless]
     steps:
@@ -19,6 +21,13 @@ jobs:
         env:
           BOOTSTRAP: ${{ matrix.bootstrap }}
         run: bash apelin/cloud-build.sh
+      - name: Upload compiled binaries
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: compiled-${{ matrix.bootstrap }}
+          path: cloud-out/${{ matrix.bootstrap }}.zip
+          if-no-files-found: error
+          retention-days: 14
       - name: Publish build files to dedicated branch
         env:
           GH_TOKEN: ${{ github.token }}
