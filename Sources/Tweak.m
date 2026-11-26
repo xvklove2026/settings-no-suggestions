@@ -258,6 +258,32 @@ static id APSNSpecifierValue(id spec, NSString *key) {
     return value;
 }
 
+// 桌面「设置」图标的角标是 followupd 随时写回的，「设置」不在前台时没人清得掉，
+// 所以这里把该显示的数字写进偏好键，由 SpringBoard 里的同一个 dylib 去拦。
+//   count >= 0  显示这个数字（0 = 没有角标）
+//   -1          不干预，系统怎么显示就怎么显示
+static void APSNSetBadgeOverride(NSInteger count) {
+    static NSInteger last = -2;
+    if (count == last) {
+        return;
+    }
+    last = count;
+    CFStringRef domain = (__bridge CFStringRef)@APELIN_PACKAGE_ID;
+    if (count < 0) {
+        CFPreferencesSetAppValue(CFSTR("badgeOverride"), NULL, domain);
+    } else {
+        CFStringRef value = (__bridge CFStringRef)[NSString stringWithFormat:@"%ld",
+                                                                             (long)count];
+        CFPreferencesSetAppValue(CFSTR("badgeOverride"), value, domain);
+    }
+    CFPreferencesAppSynchronize(domain);
+    os_log(APSNLog(), "APSN badge override -> %ld", (long)count);
+    // 让 SpringBoard 立刻按新值重算（它读到的是刚写进去的这一份）
+    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
+                                         (__bridge CFStringRef)APSNChangedNotification,
+                                         NULL, NULL, true);
+}
+
 // 「设置」图标上的角标：跟首页还剩几条建议走，0 就是清掉角标。
 // 这个角标是「设置」自己这个 App 的，改它只能在本进程里改。
 static void APSNSetIconBadge(NSUInteger count) {
@@ -316,6 +342,7 @@ static BOOL APSNApplyFollowUpVisibility(id spec) {
         if (groupHidden) {
             APSNSetIconBadge(0);
         }
+        APSNSetBadgeOverride(groupHidden ? 0 : -1);
         return groupHidden;
     }
     APSNWriteItems(items);
@@ -332,6 +359,7 @@ static BOOL APSNApplyFollowUpVisibility(id spec) {
         [spec setProperty:@0 forKey:@"badgeNumber"];
         [spec setProperty:nil forKey:@"cellObject"];
         APSNSetIconBadge(0);
+        APSNSetBadgeOverride(0);
         APSNWriteState(groupHidden ? @"row hidden (group switch)" : @"row hidden (all items hidden)");
         return YES;
     }
@@ -345,15 +373,31 @@ static BOOL APSNApplyFollowUpVisibility(id spec) {
     }
     [spec setProperty:@([kept count]) forKey:@"badgeNumber"];
     APSNSetIconBadge([kept count]);
+    APSNSetBadgeOverride([kept count] == [items count] ? -1 : (NSInteger)[kept count]);
     return NO;
+}
+
+// 单条跟进项可能直接显示备份提醒，而不是「Apple ID 建议」聚合行。
+// 标题兜底只匹配本机已确认的这一条，调用处仍限定在设置首页。
+static BOOL APSNIsFollowUpSpec(id spec) {
+    id identifier = APSNSpecifierValue(spec, @"identifier");
+    if ([identifier isKindOfClass:[NSString class]] &&
+        [identifier hasPrefix:APSNFollowUpPrefix]) {
+        return YES;
+    }
+    id name = APSNSpecifierValue(spec, @"name");
+    if (![name isKindOfClass:[NSString class]]) {
+        return NO;
+    }
+    NSString *normalized = [[name stringByReplacingOccurrencesOfString:@" " withString:@""]
+        stringByReplacingOccurrencesOfString:@"\u00a0" withString:@""];
+    return [normalized isEqualToString:@"无法备份你的iPhone"];
 }
 
 // 首页列表里那一行的下标（没有就 NSNotFound）
 static NSUInteger APSNFollowUpIndex(NSArray *specs) {
     for (NSUInteger i = 0; i < [specs count]; i++) {
-        id identifier = APSNSpecifierValue(specs[i], @"identifier");
-        if ([identifier isKindOfClass:[NSString class]] &&
-            [identifier hasPrefix:APSNFollowUpPrefix]) {
+        if (APSNIsFollowUpSpec(specs[i])) {
             return i;
         }
     }
@@ -529,9 +573,7 @@ static BOOL APSNHasFollowUpRow(id controller) {
         return NO;
     }
     for (id spec in specs) {
-        id identifier = APSNSpecifierValue(spec, @"identifier");
-        if ([identifier isKindOfClass:[NSString class]] &&
-            [identifier hasPrefix:APSNFollowUpPrefix]) {
+        if (APSNIsFollowUpSpec(spec)) {
             return YES;
         }
     }
@@ -578,7 +620,10 @@ static void APSNStartTimer(void) {
 static void APSNChangedCallback(CFNotificationCenterRef center, void *observer,
                                 CFStringRef name, const void *object,
                                 CFDictionaryRef userInfo) {
-    APSNRefresh(@"prefs changed");
+    // 通知回调不保证在主线程，改 UI 的事挪到主队列去做
+    dispatch_async(dispatch_get_main_queue(), ^{
+        APSNRefresh(@"prefs changed");
+    });
 }
 
 static void APSNObserveChanges(void) {
@@ -710,8 +755,7 @@ static BOOL APSNIsHiddenFollowUpSpec(id spec) {
     if (spec == nil) {
         return NO;
     }
-    id identifier = APSNSpecifierValue(spec, @"identifier");
-    if (![identifier isKindOfClass:[NSString class]] || ![identifier hasPrefix:APSNFollowUpPrefix]) {
+    if (!APSNIsFollowUpSpec(spec)) {
         return NO;
     }
     return APSNFollowUpHiddenNow(spec);
@@ -872,6 +916,13 @@ static void APSNRetryInstallHooks(int remaining) {
 __attribute__((constructor)) static void APSNInitialize(void) {
     os_log(APSNLog(), "ApelinLoaded %{public}s in %{public}s", APELIN_BUILD_ID,
            getprogname());
+
+    // 同一个 dylib 也注入 SpringBoard：那边只管桌面图标的角标（Sources/SpringBoard.m），
+    // 列表相关的钩子一个都不要装。
+    const char *process = getprogname();
+    if (process != NULL && strcmp(process, "SpringBoard") == 0) {
+        return;
+    }
 
     // Preferences.framework 在「设置」进程里可能还没加载，先把它拉进来。
     if (objc_getClass("PSListController") == Nil) {

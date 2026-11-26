@@ -1,6 +1,6 @@
 Package: local.xx.settingsnosuggestions
 Name: 设置首页去除 Apple ID 建议
-Version: 0.1.1
+Version: 0.1.4
 Architecture: @ARCH@
 Author: xx
 Maintainer: xx

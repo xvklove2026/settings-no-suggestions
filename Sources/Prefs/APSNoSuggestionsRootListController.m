@@ -7,8 +7,13 @@
 @interface APSNoSuggestionsRootListController : PSListController
 @end
 
-@implementation APSNoSuggestionsRootListController {
-    BOOL _itemsBuilt;
+@implementation APSNoSuggestionsRootListController
+
+- (NSArray *)specifiers {
+    if (_specifiers == nil) {
+        _specifiers = [self loadSpecifiersFromPlistName:@"Root" target:self];
+    }
+    return _specifiers;
 }
 
 // 面板也跑在「设置」进程里，同样从 bootstrap 的 /var 读 tweak 写下的列表
@@ -43,17 +48,24 @@ static NSString *APSNBundleStatePath(NSString *name) {
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
-    if (!_itemsBuilt) {
-        _itemsBuilt = YES;
-        [self buildItemSpecifiers];
-    }
+    [self buildItemSpecifiers];
 }
 
 - (void)buildItemSpecifiers {
     NSArray *items = [NSArray arrayWithContentsOfFile:APSNBundleStatePath(@"items.plist")];
+    NSArray *specifiers = [self specifiers];
     PSSpecifier *group = [self specifierForID:@"ITEMS_GROUP"];
     PSSpecifier *placeholder = [self specifierForID:@"ITEMS_PLACEHOLDER"];
-    NSArray *specifiers = [self specifiers];
+
+    for (PSSpecifier *specifier in [specifiers copy]) {
+        NSString *key = [specifier propertyForKey:@"key"];
+        if ([key isKindOfClass:[NSString class]] && [key hasPrefix:@"hide-"]) {
+            [self removeSpecifier:specifier animated:NO];
+        }
+    }
+    group = [self specifierForID:@"ITEMS_GROUP"];
+    placeholder = [self specifierForID:@"ITEMS_PLACEHOLDER"];
+    specifiers = [self specifiers];
     NSInteger index = specifiers.count;
     if (group != nil) {
         NSUInteger groupIndex = [specifiers indexOfObjectIdenticalTo:group];
@@ -63,7 +75,17 @@ static NSString *APSNBundleStatePath(NSString *name) {
     }
 
     if (items.count == 0) {
-        if (placeholder != nil) {
+        if (placeholder == nil) {
+            placeholder = [PSSpecifier preferenceSpecifierNamed:@"暂时没读到建议：先打开一次「设置」首页，再回到这里。"
+                                                            target:nil
+                                                               set:NULL
+                                                               get:NULL
+                                                            detail:Nil
+                                                              cell:PSStaticTextCell
+                                                              edit:Nil];
+            [placeholder setProperty:@"ITEMS_PLACEHOLDER" forKey:@"id"];
+            [self insertSpecifier:placeholder atIndex:index animated:NO];
+        } else {
             [placeholder setProperty:@"暂时没读到建议：先打开一次「设置」首页，再回到这里。"
                              forKey:@"label"];
             [self reloadSpecifier:placeholder];

@@ -1,0 +1,47 @@
+name: Compile iOS binaries
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  compile:
+    runs-on: macos-15
+    strategy:
+      matrix:
+        bootstrap: [roothide, rootless]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Compile universal binaries
+        env:
+          BOOTSTRAP: ${{ matrix.bootstrap }}
+        run: bash apelin/cloud-build.sh
+      - name: Publish build files to dedicated branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BOOTSTRAP: ${{ matrix.bootstrap }}
+        run: |
+          set -euo pipefail
+          BRANCH="compiled-${BOOTSTRAP}"
+          gh api "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/heads/${BRANCH}" -f sha="$GITHUB_SHA" || gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${BRANCH}" > /dev/null
+          for FILE in "cloud-out/${BOOTSTRAP}.zip"; do
+            NAME="$(basename "$FILE")"
+            OLD_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${NAME}?ref=${BRANCH}" --jq .sha 2>/dev/null || true)"
+            CONTENT="$(base64 < "$FILE" | tr -d '\n')"
+            if [ -n "$OLD_SHA" ]; then
+              gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${NAME}" -f message="Update compiled ${BOOTSTRAP} binaries" -f branch="$BRANCH" -f content="$CONTENT" -f sha="$OLD_SHA"
+            else
+              gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${NAME}" -f message="Add compiled ${BOOTSTRAP} binaries" -f branch="$BRANCH" -f content="$CONTENT"
+            fi
+          done
+          printf '%s\n' "$GITHUB_SHA" > cloud-out/source-commit.txt
+          OLD_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/contents/source-commit.txt?ref=${BRANCH}" --jq .sha 2>/dev/null || true)"
+          CONTENT="$(base64 < cloud-out/source-commit.txt | tr -d '\n')"
+          if [ -n "$OLD_SHA" ]; then
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/source-commit.txt" -f message="Record source commit" -f branch="$BRANCH" -f content="$CONTENT" -f sha="$OLD_SHA"
+          else
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/source-commit.txt" -f message="Record source commit" -f branch="$BRANCH" -f content="$CONTENT"
+          fi

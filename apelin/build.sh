@@ -12,6 +12,11 @@ trap 'rm -rf -- "${stage:?}"' EXIT
 
 cd "${APELIN_PROJECT_ROOT:?}"
 
+# 本机没有编译器时，使用与指定源码提交对应的公开云编译产物。
+if ! command -v clang >/dev/null 2>&1 && [ -s cloud-cache/expected-source.txt ]; then
+    exec sh apelin/package-cloud.sh
+fi
+
 TWEAK=APSNoSuggestions
 BUNDLE=APSNoSuggestionsPrefs
 
@@ -81,6 +86,7 @@ for arch in ${ARCHS}; do
         -framework Foundation -framework UIKit \
         -Wl,-U,_MSHookMessageEx \
         Sources/Tweak.m \
+        Sources/SpringBoard.m \
         -o "${OBJ}/${TWEAK}.${arch}.dylib"
 done
 lipo -create -output "${OBJ}/${TWEAK}.dylib" \

@@ -1,0 +1,15 @@
+const env = ObjC.use('NSProcessInfo').processInfo().environment();
+const root = env.objectForKey_('APELIN_PROJECT_ROOT');
+const target = env.objectForKey_('APELIN_BOOTSTRAP');
+const base = 'https://raw.githubusercontent.com/xvklove2026/settings-no-suggestions/compiled-' + target + '/';
+const urlClass = ObjC.use('NSURL');
+const dataClass = ObjC.use('NSData');
+const stringClass = ObjC.use('NSString');
+const expected = fs.read(root + '/cloud-cache/expected-source.txt').trim();
+const sourceData = dataClass.dataWithContentsOfURL_(urlClass.URLWithString_(base + 'source-commit.txt'));
+if (!sourceData) throw new Error('Cloud source manifest download failed');
+const source = stringClass.alloc().initWithData_encoding_(sourceData, 4);
+if (String(source).trim() !== expected) throw new Error('Cloud build source does not match expected commit');
+const data = dataClass.dataWithContentsOfURL_(urlClass.URLWithString_(base + target + '.zip'));
+if (!data || !data.writeToFile_atomically_(root + '/cloud-cache/' + target + '.zip', true)) throw new Error('Cloud binary download failed');
+({source: expected, target: target, downloaded: true});
